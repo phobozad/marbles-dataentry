@@ -59,22 +59,24 @@ var loadPlayers = function() {
 	playerList = {}
 
 	// Pull data from the "Players" table
-	airtableDB('Players').select({
+	airtableDB(config.airtable.tableName).select({
 		sort: [
 			// Sort by PlayerName in ascending order
 			{field: 'PlayerName', direction: 'asc'}
 		]
 	}).eachPage(function page(records, fetchNextPage) {
 		records.forEach(function(record) {
-			
-			// Pull the "PlayerName" and "wins" columns for each player
-			// TODO: just dynamically add all fields for the player without having to individually specifiy each one
-			var playerName = record.get('PlayerName')
-			var playerWins = record.get('wins')
-			var airtableRecordID = record.getId()
+			// Pull the "PlayerName" column for each player - this will be the lookup key used in the player list
+			var playerName = record.get(config.airtable.playerFieldName)
 
 			// And add each player to the Playerlist with the relevant attributes
-			playerList[playerName] = {wins: playerWins, recordID: airtableRecordID}
+			playerList[playerName] = {}
+			playerList[playerName].recordID = record.getId()
+
+			// Loop over all fields from Airtable, grab the value and shove it into the playerList object
+			Object.keys(record.fields).forEach(fieldName => {
+				playerList[playerName][fieldName] = record.fields[fieldName]
+			});
 
 		});
 		// If there are more than 100 results, AirTables paginates the output into multiple chunks

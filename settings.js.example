@@ -5,3 +5,7 @@ config.airtable={}
 // Fill in settings below
 config.airtable.apiKey = "keyDKkn3md78aQ"
 config.airtable.baseID = "applk132m1nd7ak"
+// This is the table that contains player stats you want to pull from (e.g. win count)
+config.airtable.tableName = "Players"
+// This is the field name (column) in the table that contains the user/player name
+config.airtable.playerFieldName = "PlayerName"
