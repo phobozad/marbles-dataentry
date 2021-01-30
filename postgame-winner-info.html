@@ -8,7 +8,7 @@
 		<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 	</head>
 	<body>
-		<button id='refreshPlayerlist'>Refresh Playerlist</button>
+		<button id='refreshPlayerlist'>Force-Refresh Playerlist</button>
 		<button id='clearAll'>Clear</button>
 		<h1>Top 5</h1>
 		<div class="ui-widget">
@@ -138,6 +138,11 @@ $('.playerName').change(function(){
 	// Make the output show up in the appropriate section of the page (announcerCopy<fieldID>)
 	$('#announcerCopy'+this.id).append(copyText);
 })
+
+
+// Setup data refresh from Airtable every 15 seconds with an immediate refresh to start
+loadPlayers()
+var airtableRefreshTimer = setInterval(loadPlayers, 15000);
 
 </script>
 
