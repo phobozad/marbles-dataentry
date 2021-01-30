@@ -9,6 +9,7 @@
 	</head>
 	<body>
 		<button id='refreshPlayerlist'>Refresh Playerlist</button>
+		<button id='clearAll'>Clear</button>
 		<h1>Top 5</h1>
 		<div class="ui-widget">
 			<label for="player1">1st Place</label>
@@ -33,11 +34,11 @@
 
 		<hr/>
 		
-		<div id="announcerCopyplayer1"></div>
-		<div id="announcerCopyplayer2"></div>
-		<div id="announcerCopyplayer3"></div>
-		<div id="announcerCopyplayer4"></div>
-		<div id="announcerCopyplayer5"></div>
+		<div id="announcerCopyplayer1" class="announcerCopy"></div>
+		<div id="announcerCopyplayer2" class="announcerCopy"></div>
+		<div id="announcerCopyplayer3" class="announcerCopy"></div>
+		<div id="announcerCopyplayer4" class="announcerCopy"></div>
+		<div id="announcerCopyplayer5" class="announcerCopy"></div>
 
 		<div id="created"></div>
 	</body>
@@ -99,6 +100,11 @@ function updateAutocomplete(){
 // Setup action when refresh button is clicked to manually pull fresh data from airtable
 $('#refreshPlayerlist').click(function(){
 	loadPlayers()
+})
+
+$('#clearAll').click(function(){
+	$('.playerName').val("")
+	$('.announcerCopy').empty();
 })
 
 // Tool for adding proper suffixes to numbers for 1st, 2nd, 3rd, 4th, etc
