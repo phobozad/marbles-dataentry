@@ -1,0 +1,7 @@
+// Config file (javascript format)
+config={}
+config.airtable={}
+
+// Fill in settings below
+config.airtable.apiKey = "keyDKkn3md78aQ"
+config.airtable.baseID = "applk132m1nd7ak"

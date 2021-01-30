@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+		<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+		<script src="airtable.browser.js"></script>
+		<script src="settings.js"></script>
+		<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+	</head>
+	<body>
+		<button id='refreshPlayerlist'>Refresh Playerlist</button>
+		<h1>Top 5</h1>
+		<div class="ui-widget">
+			<label for="player1">1st Place</label>
+			<input id="player1" class="playerName">
+		</div>
+		<div class="ui-widget">
+			<label for="player2">2nd Place</label>
+			<input id="player2" class="playerName">
+		</div>
+		<div class="ui-widget">
+			<label for="player3">3rd Place</label>
+			<input id="player3" class="playerName">
+		</div>
+		<div class="ui-widget">
+			<label for="player4">4th Place</label>
+			<input id="player4" class="playerName">
+		</div>
+		<div class="ui-widget">
+			<label for="player5">5th Place</label>
+			<input id="player5" class="playerName">
+		</div>
+
+		<hr/>
+		
+		<div id="announcerCopyplayer1"></div>
+		<div id="announcerCopyplayer2"></div>
+		<div id="announcerCopyplayer3"></div>
+		<div id="announcerCopyplayer4"></div>
+		<div id="announcerCopyplayer5"></div>
+
+		<div id="created"></div>
+	</body>
+
+
+<script>
+var Airtable = require('airtable');
+// Setup which base we are connecting to and the API key to authenticate. These are pulled in from settings.js
+var airtableDB = new Airtable({apiKey: config.airtable.apiKey}).base(config.airtable.baseID);
+
+// playerList holds cache of player names pulled from Airtable
+var playerList = {}
+var playerAutoComplete = []
+
+// loadPlayers updates the cache of player names from Airtable to ensure its up-to-date
+var loadPlayers = function() {
+	//$('#players').empty();
+	
+	playerList = {}
+
+	// Pull data from the "Players" table
+	airtableDB('Players').select({
+		sort: [
+			// Sort by PlayerName in ascending order
+			{field: 'PlayerName', direction: 'asc'}
+		]
+	}).eachPage(function page(records, fetchNextPage) {
+		records.forEach(function(record) {
+			
+			// Pull the "PlayerName" and "wins" columns for each player
+			// TODO: just dynamically add all fields for the player without having to individually specifiy each one
+			var playerName = record.get('PlayerName')
+			var playerWins = record.get('wins')
+			var airtableRecordID = record.getId()
+
+			// And add each player to the Playerlist with the relevant attributes
+			playerList[playerName] = {wins: playerWins, recordID: airtableRecordID}
+
+		});
+		// If there are more than 100 results, AirTables paginates the output into multiple chunks
+		fetchNextPage();
+	}, function done(error) {
+		if(error) console.log(error);
+
+		// Refresh the auto-complete fields with the new data
+		updateAutocomplete()
+	});
+};
+
+// Any field with "class=playerName" will be setup with autocomplete using the current playerlist data
+function updateAutocomplete(){
+	$('.playerName').autocomplete({
+      source: Object.keys(playerList)
+	});
+}
+
+// Setup action when refresh button is clicked to manually pull fresh data from airtable
+$('#refreshPlayerlist').click(function(){
+	loadPlayers()
+})
+
+// Tool for adding proper suffixes to numbers for 1st, 2nd, 3rd, 4th, etc
+const english_ordinal_rules = new Intl.PluralRules("en", {type: "ordinal"});
+const suffixes = {
+    one: "st",
+    two: "nd",
+    few: "rd",
+    other: "th"
+};
+function ordinal(number) {
+    const suffix = suffixes[english_ordinal_rules.select(number)];
+    return suffix;
+}
+
+
+$('.playerName').change(function(){
+	// Setup clearer mapping of player name based on which field was changed
+	var playerName = this.value
+	// fieldLabel will have the text of whatever label is attached to this field (e.g. "1st Place")
+	var fieldLabel = this.labels[0].outerText
+
+	// Since the data we pulled is from before the end of this race, need to always add "1" to any win counter
+	var winNumber = playerList[playerName].wins + 1
+	var winNumberSuffix = ordinal(winNumber)
+
+	// Construct the output text/html
+	var copyText = $('<div>');
+	copyText.append(`In ${fieldLabel} with their ${winNumber}${winNumberSuffix} win this season is ${playerName}.`)
+
+	// Make the output show up in the appropriate section of the page (announcerCopy<fieldID>)
+	$('#announcerCopy'+this.id).append(copyText);
+})
+
+</script>
+
+
+</html>
