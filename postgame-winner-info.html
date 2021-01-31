@@ -193,6 +193,8 @@ $('.playerName').change(function(){
 	if (this.id == 'player1'){
 		// Count only 1st place placements (wins)
 		var firstPlaceWins = calcNthPlaceFinishesTonight(playerName,1) + 1
+		var firstPlacePoints = playerList[playerName][config.airtable.playerPointsFieldName] + config.lfg.pointsForPlace[1]
+
 		copyText.append(`<b><u>First place</u></b>: <b>${playerName}</b>. `)
 		if(firstPlaceWins==1){
 			copyText.append(`This is their <b>${firstPlaceWins}${ordinal(firstPlaceWins)}</b> first place finish tonight `)
@@ -200,20 +202,24 @@ $('.playerName').change(function(){
 		else{
 			copyText.append(`They've gotten <b>${firstPlaceWins}</b> first place finishes tonight `)
 		}
-		copyText.append(`and racked up ${""} big points. `)
-		copyText.append(`They're now ranked ${""}.`)
+		copyText.append(`and racked up <b>${firstPlacePoints}</b> big points. `)
+		//copyText.append(`They're now ranked ${""}.`)
 	}
 	else if (this.id == 'player2'){
 		// Count all top-5 placements
 		var secondPlaceTopPlacements = calcTopFinishesTonight(playerName,5) + 1
+		var secondPlacePoints = playerList[playerName][config.airtable.playerPointsFieldName] + config.lfg.pointsForPlace[2]
+
 		copyText.append(`<b><u>Second place</u></b>: <b>${playerName}</b>. `)
 		copyText.append(`This is their <b>${secondPlaceTopPlacements}${ordinal(secondPlaceTopPlacements)}</b> time placing in the big five `)
-		copyText.append(`and they've got ${""} points now. `)
-		copyText.append(`They're now ranked ${""}.`)
+		copyText.append(`and they've got <b>${secondPlacePoints}</b> points now. `)
+		//copyText.append(`They're now ranked ${""}.`)
 	}
 	else if (this.id == 'player3'){
 		// Count all top-5 placements
 		var thirdPlaceTopPlacements = calcTopFinishesTonight(playerName,5) + 1
+		var thirdPlacePoints = playerList[playerName][config.airtable.playerPointsFieldName] + config.lfg.pointsForPlace[3]
+
 		copyText.append(`<b><u>Third place</u></b>: <b>${playerName}</b>. `)
 		if(thirdPlaceTopPlacements==1){
 			copyText.append(`This is their <b>${thirdPlaceTopPlacements}${ordinal(thirdPlaceTopPlacements)}</b> time making the big five `)
@@ -221,8 +227,8 @@ $('.playerName').change(function(){
 		else{
 			copyText.append(`They've made the big five <b>${thirdPlaceTopPlacements}</b> times now `)
 		}
-		copyText.append(`and are up to ${""} points. `)
-		copyText.append(`They're now ranked ${""}.`)
+		copyText.append(`and are up to <b>${thirdPlacePoints}</b> points. `)
+		//copyText.append(`They're now ranked ${""}.`)
 	}
 
 	// Make the output show up in the appropriate section of the page (announcerCopy<fieldID>)
