@@ -61,11 +61,11 @@ var airtableDB = new Airtable({apiKey: config.airtable.apiKey}).base(config.airt
 var playerList = {}
 
 // loadPlayers updates the cache of player names from Airtable to ensure its up-to-date
-var loadPlayers = function() {
-	//$('#players').empty();
-	
-	playerList = {}
+var loadPlayers = function() {	
+
 	return new Promise ((resolve,reject) => {
+		var newPlayerList = {}
+
 		// Pull data from the "Players" table
 		airtableDB(config.airtable.playerTableName).select({
 			sort: [
@@ -78,12 +78,12 @@ var loadPlayers = function() {
 				var playerName = record.get(config.airtable.playerFieldName)
 
 				// And add each player to the Playerlist with the relevant attributes
-				playerList[playerName] = {}
-				playerList[playerName].recordID = record.getId()
+				newPlayerList[playerName] = {}
+				newPlayerList[playerName].recordID = record.getId()
 
 				// Loop over all fields from Airtable, grab the value and shove it into the playerList object
 				Object.keys(record.fields).forEach(fieldName => {
-					playerList[playerName][fieldName] = record.fields[fieldName]
+					newPlayerList[playerName][fieldName] = record.fields[fieldName]
 				});
 
 			});
@@ -94,6 +94,9 @@ var loadPlayers = function() {
 				console.log(error);
 				reject();
 			}
+
+			// Update player list with the new data
+			playerList = newPlayerList;
 
 			// Refresh the auto-complete fields with the new data
 			updatePlayerAutocomplete()
@@ -134,8 +137,7 @@ var raceList = {}
 // loadRaces updates the cache of Race result data from Airtable to ensure its up-to-date
 var loadRaces = function(firstRun=false) {
 	
-	raceList = {}
-
+	var newRaceList = {}
 	// Pull data from the "Races" table for this week
 	airtableDB(config.airtable.raceTableName).select({
 		filterByFormula: `AND(Season="${config.lfg.season}", Week="${config.lfg.week}")`,
@@ -145,11 +147,11 @@ var loadRaces = function(firstRun=false) {
 			var recordID = record.getId()
 
 			// And add each race to the Playerlist with the relevant attributes
-			raceList[recordID] = {}
+			newRaceList[recordID] = {}
 			
 			// Loop over all fields from Airtable, grab the value and shove it into the raceList object
 			Object.keys(record.fields).forEach(fieldName => {
-				raceList[recordID][fieldName] = record.fields[fieldName]
+				newRaceList[recordID][fieldName] = record.fields[fieldName]
 			});
 
 		});
@@ -157,6 +159,9 @@ var loadRaces = function(firstRun=false) {
 		fetchNextPage();
 	}, function done(error) {
 		if(error) console.log(error);
+
+		// Update race list with the new data
+		raceList = newRaceList
 
 		// The first time we pull data, update the race number to be the next available number
 		if (firstRun){
