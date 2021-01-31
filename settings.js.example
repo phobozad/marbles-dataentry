@@ -6,6 +6,14 @@ config.airtable={}
 config.airtable.apiKey = "keyDKkn3md78aQ"
 config.airtable.baseID = "applk132m1nd7ak"
 // This is the table that contains player stats you want to pull from (e.g. win count)
-config.airtable.tableName = "Players"
+config.airtable.playerTableName = "Players"
 // This is the field name (column) in the table that contains the user/player name
-config.airtable.playerFieldName = "PlayerName"
+config.airtable.playerFieldName = "Name"
+config.airtable.playerPointsFieldName = "TO - Total Points Current"
+// Race result table name
+config.airtable.raceTableName = "Races"
+config.airtable.raceFirstFieldName = "1st Place (+3)"
+config.airtable.raceSecondFieldName = "2nd Place (+2)"
+config.airtable.raceThirdFieldName = "3rd Place (+2)"
+config.airtable.raceFourthFieldName = "4th Place (+1)"
+config.airtable.raceFifthFieldName = "5th Place (+1)"

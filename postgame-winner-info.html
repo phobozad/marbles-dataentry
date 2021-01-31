@@ -60,10 +60,10 @@ var loadPlayers = function() {
 	playerList = {}
 
 	// Pull data from the "Players" table
-	airtableDB(config.airtable.tableName).select({
+	airtableDB(config.airtable.playerTableName).select({
 		sort: [
 			// Sort by PlayerName in ascending order
-			{field: 'PlayerName', direction: 'asc'}
+			{field: config.airtable.playerFieldName, direction: 'asc'}
 		]
 	}).eachPage(function page(records, fetchNextPage) {
 		records.forEach(function(record) {
