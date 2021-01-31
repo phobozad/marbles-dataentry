@@ -21,6 +21,8 @@ config.airtable.raceFieldNamePlace[5] = "5th Place (+1)"
 
 // Race result point calculations
 config.lfg={}
+config.lfg.season="ST"
+config.lfg.week="WT"
 config.lfg.pointsForPlace={}
 config.lfg.pointsForPlace[1] = 3
 config.lfg.pointsForPlace[2] = 2
