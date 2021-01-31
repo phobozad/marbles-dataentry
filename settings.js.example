@@ -10,6 +10,7 @@ config.airtable.playerTableName = "Players"
 // This is the field name (column) in the table that contains the user/player name
 config.airtable.playerFieldName = "Name"
 config.airtable.playerPointsFieldName = "TO - Total Points Current"
+config.airtable.playerLeaderboardViewName = "Leaderboard-v2"
 // Race result table name
 config.airtable.raceTableName = "Races"
 config.airtable.raceFieldNamePlace={}

@@ -36,9 +36,9 @@
 
 		<hr/>
 		
-		<div id="announcerCopyplayer1" class="announcerCopy"></div>
-		<div id="announcerCopyplayer2" class="announcerCopy"></div>
-		<div id="announcerCopyplayer3" class="announcerCopy"></div>
+		<div id="announcerCopyplayer1"><span id='announcerCopyplayer1Blurb' class="announcerCopy"></span><span id='announcerCopyplayer1Rank' class="announcerCopy"></span></div>
+		<div id="announcerCopyplayer2"><span id='announcerCopyplayer2Blurb' class="announcerCopy"></span><span id='announcerCopyplayer2Rank' class="announcerCopy"></span></div>
+		<div id="announcerCopyplayer3"><span id='announcerCopyplayer3Blurb' class="announcerCopy"></span><span id='announcerCopyplayer3Rank' class="announcerCopy"></span></div>
 
 		<hr/>
 
@@ -65,38 +65,68 @@ var loadPlayers = function() {
 	//$('#players').empty();
 	
 	playerList = {}
+	return new Promise ((resolve,reject) => {
+		// Pull data from the "Players" table
+		airtableDB(config.airtable.playerTableName).select({
+			sort: [
+				// Sort by PlayerName in ascending order
+				{field: config.airtable.playerFieldName, direction: 'asc'}
+			]
+		}).eachPage(function page(records, fetchNextPage) {
+			records.forEach(function(record) {
+				// Pull the "PlayerName" column for each player - this will be the lookup key used in the player list
+				var playerName = record.get(config.airtable.playerFieldName)
 
-	// Pull data from the "Players" table
-	airtableDB(config.airtable.playerTableName).select({
-		sort: [
-			// Sort by PlayerName in ascending order
-			{field: config.airtable.playerFieldName, direction: 'asc'}
-		]
-	}).eachPage(function page(records, fetchNextPage) {
-		records.forEach(function(record) {
-			// Pull the "PlayerName" column for each player - this will be the lookup key used in the player list
-			var playerName = record.get(config.airtable.playerFieldName)
+				// And add each player to the Playerlist with the relevant attributes
+				playerList[playerName] = {}
+				playerList[playerName].recordID = record.getId()
 
-			// And add each player to the Playerlist with the relevant attributes
-			playerList[playerName] = {}
-			playerList[playerName].recordID = record.getId()
+				// Loop over all fields from Airtable, grab the value and shove it into the playerList object
+				Object.keys(record.fields).forEach(fieldName => {
+					playerList[playerName][fieldName] = record.fields[fieldName]
+				});
 
-			// Loop over all fields from Airtable, grab the value and shove it into the playerList object
-			Object.keys(record.fields).forEach(fieldName => {
-				playerList[playerName][fieldName] = record.fields[fieldName]
 			});
+			// If there are more than 100 results, AirTables paginates the output into multiple chunks
+			fetchNextPage();
+		}, function done(error) {
+			if(error){
+				console.log(error);
+				reject();
+			}
 
+			// Refresh the auto-complete fields with the new data
+			updatePlayerAutocomplete()
+			resolve();
 		});
-		// If there are more than 100 results, AirTables paginates the output into multiple chunks
-		fetchNextPage();
-	}, function done(error) {
-		if(error) console.log(error);
-
-		// Refresh the auto-complete fields with the new data
-		updatePlayerAutocomplete()
 	});
 };
 
+leaderboardArray = []
+// loadLeaderboard pulls the live leaderboard rankings
+function loadLeaderboard() {
+	leaderboardArray = []
+	return new Promise ((resolve,reject) => {
+		// Pull data from the "Players" table
+		airtableDB(config.airtable.playerTableName).select({
+			view: config.airtable.playerLeaderboardViewName
+		}).eachPage(function page(records, fetchNextPage) {
+			records.forEach(function(record) {
+				// Players simply inserted into array in order.  Rank = array index value + 1
+				leaderboardArray.push(record.get(config.airtable.playerFieldName))
+			});
+			// If there are more than 100 results, AirTables paginates the output into multiple chunks
+			fetchNextPage();
+		}, function done(error) {
+			if(error){
+				console.log(error);
+				reject();
+			}
+
+			resolve();
+		});
+	});
+};
 
 // playerList holds cache of player names pulled from Airtable
 var raceList = {}
@@ -252,6 +282,30 @@ function calcTopFinishesTonight(playerName, nthPlace) {
 	return resultCount;
 }
 
+// Since we need to wait for some data processing, this function gets called later to add player rank info to the announcer output
+function addPlayerRank(){
+	// Run though rank for Top 3 players
+	for(var i=1; i<=3; i++){
+		var playerName = $(`#player${i}`).val()
+		// Lookup player in the leaderboard
+		var index = leaderboardArray.findIndex( (player) => player == playerName )
+
+		// Only update if we found the player.  If the player wasn't found in the leaderboard for some reason, we will get a -1
+		if (index >= 0){
+			// Index is zero-based so need to add 1 to get actual rank number
+			var rank = index + 1
+			var copyText = ''
+
+			copyText += ` They're now ranked <b>${rank}${ordinal(rank)}</b>.`
+			// Append text right after current blurb
+			$(`#announcerCopyplayer${i}Rank`).empty();
+			$(`#announcerCopyplayer${i}Rank`).append(copyText);
+		}
+	}
+	
+	
+
+}
 
 $('.playerName').change(function(){
 	// Setup clearer mapping of player name based on which field was changed
@@ -269,7 +323,7 @@ $('.playerName').change(function(){
 	// Since the data we pulled is from before the end of this race, need to always add "1" to any win counter
 
 	// Construct the output text/html
-	var copyText = $('<div>');
+	var copyText = $('<span>');
 	
 	// Text blurb varies depending on which placement this is for
 	if (this.id == 'player1'){
@@ -285,7 +339,7 @@ $('.playerName').change(function(){
 			copyText.append(`They've gotten <b>${firstPlaceWins}</b> first place finishes tonight `)
 		}
 		copyText.append(`and racked up <b>${firstPlacePoints}</b> big points. `)
-		//copyText.append(`They're now ranked ${""}.`)
+
 	}
 	else if (this.id == 'player2'){
 		// Count all top-5 placements
@@ -295,7 +349,7 @@ $('.playerName').change(function(){
 		copyText.append(`<b><u>Second place</u></b>: <b>${playerName}</b>. `)
 		copyText.append(`This is their <b>${secondPlaceTopPlacements}${ordinal(secondPlaceTopPlacements)}</b> time placing in the big five `)
 		copyText.append(`and they've got <b>${secondPlacePoints}</b> points now. `)
-		//copyText.append(`They're now ranked ${""}.`)
+
 	}
 	else if (this.id == 'player3'){
 		// Count all top-5 placements
@@ -310,12 +364,12 @@ $('.playerName').change(function(){
 			copyText.append(`They've made the big five <b>${thirdPlaceTopPlacements}</b> times now `)
 		}
 		copyText.append(`and are up to <b>${thirdPlacePoints}</b> points. `)
-		//copyText.append(`They're now ranked ${""}.`)
+
 	}
 
 	// Make the output show up in the appropriate section of the page (announcerCopy<fieldID>)
-	$('#announcerCopy'+this.id).empty();
-	$('#announcerCopy'+this.id).append(copyText);
+	$(`#announcerCopy${this.id}Blurb`).empty();
+	$(`#announcerCopy${this.id}Blurb`).append(copyText);
 })
 
 // Mark location field as required if this is a new map
@@ -581,13 +635,21 @@ function saveRaceRaw(){
 
 	if(raceRecordID === false){
 		newRace = createRace();
-		newRace.then(function(raceRecordID){
-			insertRawResults(raceRecordID,resultsRaw,raceFinishers)
+		var insertAction = newRace.then(function(raceRecordID){
+			 return insertRawResults(raceRecordID,resultsRaw,raceFinishers)
 		});
 	}
 	else{
-		insertRawResults(raceRecordID,resultsRaw,raceFinishers)
+		var insertAction = insertRawResults(raceRecordID,resultsRaw,raceFinishers)
 	}
+	
+	// After the data insert is complete, pull new player info and update rank
+	insertAction.then(function(){
+		return loadLeaderboard()
+	}).then(function(){
+		addPlayerRank()
+	})
+
 }
 
 // Setup data refresh from Airtable every 15 seconds with an immediate refresh to start
