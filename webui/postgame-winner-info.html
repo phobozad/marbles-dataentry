@@ -14,6 +14,11 @@
 		<div id='season'></div>
 		<div id='week'></div>
 		<div id='race'><label for='raceInput'>Race:</label><input type='number' id='raceInput' min='1' size='4'> <button id='nextRace'>Next Race</button></div>
+		<form id='rawResultsForm' action='javascript:;' onsubmit='saveRaceRaw()'>
+		<div id='location' class='ui-widget'>
+			<label for='raceLocation'>Track:</label>
+			<input id='raceLocation'>
+		</div>
 
 		<h1>Top 3</h1>
 		<div class="ui-widget">
@@ -38,10 +43,11 @@
 		<hr/>
 
 		<div>
-			<label for='lastPlaceInput'>Last Finisher:</label><input id='lastPlaceInput' type='number' min='0'> <button id='saveOrderedRaceResults' disabled >Save race placements</button>
+			<label for='lastPlaceInput'>Last Finisher:</label><input id='lastPlaceInput' type='number' min='0' required> <button id='saveOrderedRaceResults'>Save race placements</button>
 			<br><br>
-			<textarea id='orderedRaceResults' cols='30' rows='25'></textarea>
+			<textarea id='orderedRaceResults' cols='30' rows='25' required></textarea>
 		</div>
+		</form>
 
 	</body>
 
@@ -53,7 +59,6 @@ var airtableDB = new Airtable({apiKey: config.airtable.apiKey}).base(config.airt
 
 // playerList holds cache of player names pulled from Airtable
 var playerList = {}
-var playerAutoComplete = []
 
 // loadPlayers updates the cache of player names from Airtable to ensure its up-to-date
 var loadPlayers = function() {
@@ -88,7 +93,7 @@ var loadPlayers = function() {
 		if(error) console.log(error);
 
 		// Refresh the auto-complete fields with the new data
-		updateAutocomplete()
+		updatePlayerAutocomplete()
 	});
 };
 
@@ -106,7 +111,7 @@ var loadRaces = function(firstRun=false) {
 		filterByFormula: `AND(Season="${config.lfg.season}", Week="${config.lfg.week}")`,
 	}).eachPage(function page(records, fetchNextPage) {
 		records.forEach(function(record) {
-			// Pull the "PlayerName" column for each player - this will be the lookup key used in the player list
+			// Pull the Airtable record ID for each reace - this will be the lookup key used in the race list
 			var recordID = record.getId()
 
 			// And add each race to the Playerlist with the relevant attributes
@@ -125,17 +130,64 @@ var loadRaces = function(firstRun=false) {
 
 		// The first time we pull data, update the race number to be the next available number
 		if (firstRun){
-			$('#raceInput').val(getLastUnfilledRace()+1)
+			$('#raceInput').val(getLastUnfilledRace()+1).change()
 		}
 
+		// If there is new race data, we may not need to provide the location info now, so update the required attribute
+		updateLocationRequiredAttr()
+	});
+};
+
+
+// locationList holds cache of maps pulled from Airtable
+var locationList = {}
+
+// loadLocations updates the cache of maps names from Airtable
+var loadLocations = function() {	
+	locationList = {}
+
+	// Pull data from the "Locations" table
+	airtableDB(config.airtable.locationTableName).select({
+		sort: [
+			// Sort by Name in ascending order
+			{field: config.airtable.locationNameField, direction: 'asc'}
+		]
+	}).eachPage(function page(records, fetchNextPage) {
+		records.forEach(function(record) {
+			// Pull the "Name" column for each location - this will be the lookup key used in the location list
+			var locationName = record.get(config.airtable.locationNameField)
+
+			// And add each player to the locationList with the relevant attributes
+			locationList[locationName] = {}
+			locationList[locationName].recordID = record.getId()
+
+			// Loop over all fields from Airtable, grab the value and shove it into the object
+			Object.keys(record.fields).forEach(fieldName => {
+				locationList[locationName][fieldName] = record.fields[fieldName]
+			});
+
+		});
+		// If there are more than 100 results, AirTables paginates the output into multiple chunks
+		fetchNextPage();
+	}, function done(error) {
+		if(error) console.log(error);
+
+		// Refresh the auto-complete fields with the new data
+		updateLocationAutocomplete()
 	});
 };
 
 // Any field with "class=playerName" will be setup with autocomplete using the current playerlist data
-function updateAutocomplete(){
+function updatePlayerAutocomplete(){
 	$('.playerName').autocomplete({
 	  source: Object.keys(playerList)
 	});
+}
+
+function updateLocationAutocomplete() {
+	$('#raceLocation').autocomplete({
+		source: Object.keys(locationList)
+	})
 }
 
 // Setup action when refresh button is clicked to manually pull fresh data from airtable
@@ -209,6 +261,10 @@ $('.playerName').change(function(){
 
 	// Skip blank data since we'll error out anyway
 	if (playerName == "") return;
+	if (!(playerName in playerList)){
+		console.error(`Player ${playerName} not found in database`)
+		return
+	}
 
 	// Since the data we pulled is from before the end of this race, need to always add "1" to any win counter
 
@@ -262,18 +318,34 @@ $('.playerName').change(function(){
 	$('#announcerCopy'+this.id).append(copyText);
 })
 
+// Mark location field as required if this is a new map
+function updateLocationRequiredAttr(){
+	if (checkRaceExists($('#raceInput').val())===false){
+		$('#raceLocation').attr('required', true)
+	}
+	else{
+		$('#raceLocation').removeAttr('required')
+	}
+}
+
+$('#raceInput').change(function raceInputChange(){
+	updateLocationRequiredAttr()
+})
+
+
 
 $('#nextRace').click(function(){
 	document.getElementById('raceInput').value++
+	$('#raceInput').change()
 })
 
 function getLastUnfilledRace(){
-	var highestRace = 1
+	var highestRace = 0
 	
 	Object.keys(raceList).forEach(race => {
 		// If the player ID matches the race result field, increment the counter
-		if(parseInt(raceList[race].Race) > highestRace){
-			highestRace=parseInt(raceList[race].Race);
+		if(parseInt(raceList[race][config.airtable.raceNumberFieldName]) > highestRace){
+			highestRace=parseInt(raceList[race][config.airtable.raceNumberFieldName]);
 		}
 	})
 
@@ -337,21 +409,122 @@ function wsConnect() {
 	};
 }
 
-wsConnect();
+// Return false if race number not found, otherwise return airtable record ID for the race
+function checkRaceExists(raceNumber) {
+	var result = Object.keys(raceList).find(race => parseInt(raceList[race][config.airtable.raceNumberFieldName]) == raceNumber)
+	
+	if(result === undefined) return false
+	return result
+}
 
 
+function getKeyByValue(object, value) {
+  return Object.keys(object).find(key => object[key] === value);
+}
 
+
+// Create a new Race record
+function createRace() {
+	// Lookup record ID for the selected location to link it in the table
+	var locationID = locationList[$('#raceLocation').val()].recordID
+
+	return new Promise((resolve,reject) => {
+		airtableDB(config.airtable.raceTableName).create(
+			[
+				{
+					'fields':{
+						[config.airtable.raceSeasonFieldName]: config.lfg.season,
+						[config.airtable.raceWeekFieldName]: config.lfg.week,
+						[config.airtable.raceNumberFieldName]: $('#raceInput').val(),
+						[config.airtable.raceLocationFieldName]: [locationID]
+					}
+				}
+			],
+			{typecast: true},
+			function(err, records){
+				if(err) {
+					console.error(err);
+					reject(err);
+					return
+				}
+				
+				// Save the record ID we just created to link the results to this race below
+				raceRecordID = records[0].getId();
+				console.log(`Race Created. New Race Record ID: ${raceRecordID}`);
+
+				resolve(raceRecordID);
+			}
+		);
+	});
+}
+
+
+function insertRawResults(raceRecordID, raceResultsRaw, raceFinishers) {
+	// Insert the data into the Results table
+
+	return new Promise((resolve, reject) => {
+		airtableDB(config.airtable.resultsTableName).create(
+			[
+				{
+					'fields':{
+						[config.airtable.resultsRaceLinkedFieldName]: [raceRecordID],
+						[config.airtable.resultsRawFieldName]: raceResultsRaw,
+						[config.airtable.resultsFinishersFieldName]: raceFinishers 
+					}
+				}
+			],
+			function(err, records){
+				if(err) {
+					console.error(err);
+					reject(err);
+					return;
+				}
+				
+				console.log(`Race ID ${raceRecordID} Saved`)
+				/*records.forEach(function (record) {
+					console.log(record.getId());
+				})*/
+
+				resolve();
+			}
+		);
+	});
+}
+
+// Save raw results list to database.  Triggered by form save button.
+function saveRaceRaw(){
+
+	// Check if Race already exists in Race table.  If not, then we need to create it
+	var raceRecordID = checkRaceExists($('#raceInput').val())
+	var resultsRaw = $('#orderedRaceResults').val()
+	var raceFinishers = parseInt($('#lastPlaceInput').val())
+
+	if(raceRecordID === false){
+		newRace = createRace();
+		newRace.then(function(raceRecordID){
+			insertRawResults(raceRecordID,resultsRaw,raceFinishers)
+		});
+	}
+	else{
+		insertRawResults(raceRecordID,resultsRaw,raceFinishers)
+	}
+}
 
 // Setup data refresh from Airtable every 15 seconds with an immediate refresh to start
 loadPlayers()
 var airtablePlayerRefreshTimer = setInterval(loadPlayers, 15000);
 
+// Race data doesn't need to update as often
 loadRaces(true)
 var airtableRaceRefreshTimer = setInterval(loadRaces, 30000);
+
+loadLocations()
 
 $('#season').append(`Season: ${config.lfg.season}`)
 $('#week').append(`Week: ${config.lfg.week}`)
 
+// Setup websocket connection to marblescopier-listener databroker
+wsConnect();
 
 </script>
 

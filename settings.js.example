@@ -18,6 +18,18 @@ config.airtable.raceFieldNamePlace[2] = "2nd Place (+2)"
 config.airtable.raceFieldNamePlace[3] = "3rd Place (+2)"
 config.airtable.raceFieldNamePlace[4] = "4th Place (+1)"
 config.airtable.raceFieldNamePlace[5] = "5th Place (+1)"
+config.airtable.raceSeasonFieldName = "Season"
+config.airtable.raceWeekFieldName = "Week"
+config.airtable.raceNumberFieldName = "Race"
+config.airtable.raceLocationFieldName = "Location"
+// Result table name and field names
+config.airtable.resultsTableName = "Results"
+config.airtable.resultsRawFieldName = "Ordered Result (from MOS)"
+config.airtable.resultsRaceLinkedFieldName = "Race"
+config.airtable.resultsFinishersFieldName = "Finishers"
+// Location table name and field names
+config.airtable.locationTableName = "Locations"
+config.airtable.locationNameField = "Name"
 
 // Race result point calculations
 config.lfg={}
