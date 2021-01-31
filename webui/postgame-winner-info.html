@@ -9,11 +9,11 @@
 	</head>
 	<body>
 		<button id='refreshPlayerlist'>Force-Refresh Playerlist</button>
-		<button id='clearAll'>Clear</button>
+		<button id='clearTop3'>Clear Top 3</button>
 		<h1>Race Selection</h1>
 		<div id='season'></div>
 		<div id='week'></div>
-		<div id='race'><label for='raceInput'>Race:</label><input type='number' id='raceInput' min='1' size='4'> <button id='nextRace'>Next Race</button></div>
+		<div id='race'><label for='raceInput'>Race:</label><input type='number' id='raceInput' min='1' size='4'> <button id='nextRace'>Next Race & Clear All</button></div>
 		<form id='rawResultsForm' action='javascript:;' onsubmit='saveRaceRaw()'>
 		<div id='location' class='ui-widget'>
 			<label for='raceLocation'>Track:</label>
@@ -195,7 +195,7 @@ $('#refreshPlayerlist').click(function(){
 	loadPlayers()
 })
 
-$('#clearAll').click(function(){
+$('#clearTop3').click(function(){
 	$('.playerName').val("")
 	$('.announcerCopy').empty();
 })
@@ -337,7 +337,19 @@ $('#raceInput').change(function raceInputChange(){
 $('#nextRace').click(function(){
 	document.getElementById('raceInput').value++
 	$('#raceInput').change()
+
+	clearAllFields()
 })
+
+// Function to clear all fields except race number
+function clearAllFields(){
+	$('.playerName').val("").change()
+	$('.announcerCopy').empty();
+	$('#lastPlaceInput').val("").change()
+	$('#orderedRaceResults').val("").change()
+	$('#raceLocation').val("").change()
+	
+}
 
 function getLastUnfilledRace(){
 	var highestRace = 0
