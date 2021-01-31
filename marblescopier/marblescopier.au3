@@ -1,3 +1,4 @@
+#include <Date.au3>
 ; https://www.autoitscript.com/autoit3/docs/functions/AutoItSetOption.htm#MouseCoordMode
 ; Set coordinate mode to relative client (e.g. relative within the window's viewport)
 AutoItSetOption("MouseCoordMode","2")
@@ -51,5 +52,14 @@ If WinActive($windowTitle) Then
 	SendKeepActive("Marbles Race Result Paste Listener")
 	; Need to use really janky keystrokes to paste into CLI window
 	send('!{SPACE}ep{ENTER}{ENTER}{ENTER}')
+
+	; Write data to disk as a backup in case of issue
+	; Get current timestamp
+	$dateTime = _NowCalc()
+	; Need to clean up format to be a valid filename
+	$dateTime = StringReplace($dateTime,'/','-')
+	$dateTime = StringReplace($dateTime,':','_')
+	; Write file to working directory
+	FileWrite("MarblesResults_" & $dateTime, ClipGet())
 EndIf
 
