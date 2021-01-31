@@ -90,6 +90,40 @@ var loadPlayers = function() {
 	});
 };
 
+
+// playerList holds cache of player names pulled from Airtable
+var raceList = {}
+
+// loadRaces updates the cache of Race result data from Airtable to ensure its up-to-date
+var loadRaces = function() {
+	
+	raceList = {}
+
+	// Pull data from the "Races" table for this week
+	airtableDB(config.airtable.raceTableName).select({
+		filterByFormula: 'AND(Season="ST", Week="WT")',
+	}).eachPage(function page(records, fetchNextPage) {
+		records.forEach(function(record) {
+			// Pull the "PlayerName" column for each player - this will be the lookup key used in the player list
+			var recordID = record.getId()
+
+			// And add each race to the Playerlist with the relevant attributes
+			raceList[recordID] = {}
+			
+			// Loop over all fields from Airtable, grab the value and shove it into the raceList object
+			Object.keys(record.fields).forEach(fieldName => {
+				raceList[recordID][fieldName] = record.fields[fieldName]
+			});
+
+		});
+		// If there are more than 100 results, AirTables paginates the output into multiple chunks
+		fetchNextPage();
+	}, function done(error) {
+		if(error) console.log(error);
+
+	});
+};
+
 // Any field with "class=playerName" will be setup with autocomplete using the current playerlist data
 function updateAutocomplete(){
 	$('.playerName').autocomplete({
@@ -121,6 +155,27 @@ function ordinal(number) {
 }
 
 
+function calcNthPlaceFinishesTonight(playerName, nthPlace) {
+	// Map player name to record ID, since this is what is seen in Race table data
+	var playerID = playerList[playerName].recordID
+
+	// Use the appropriate field name based on which place we're looking at (1st, 2nd, 3rd, etc)
+	var fieldName = config.airtable.raceFieldNamePlace[nthPlace]
+
+	var resultCount = 0
+
+	// Loop over all races and check for the playerID in the results
+	Object.keys(raceList).forEach(race => {
+		// If the player ID matches the race result field, increment the counter
+		if(raceList[race][fieldName] == playerID){
+			resultCount++;
+		}
+
+	});
+
+	return resultCount;
+}
+
 $('.playerName').change(function(){
 	// Setup clearer mapping of player name based on which field was changed
 	var playerName = this.value
@@ -142,7 +197,10 @@ $('.playerName').change(function(){
 
 // Setup data refresh from Airtable every 15 seconds with an immediate refresh to start
 loadPlayers()
-var airtableRefreshTimer = setInterval(loadPlayers, 15000);
+var airtablePlayerRefreshTimer = setInterval(loadPlayers, 15000);
+
+loadRaces()
+var airtableRaceRefreshTimer = setInterval(loadRaces, 30000);
 
 </script>
 
