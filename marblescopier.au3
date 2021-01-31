@@ -45,9 +45,11 @@ If WinActive($windowTitle) Then
 	; Click close button on popup
 	MouseClick("left",$closeX,$closeY,1,0)
 
-	;Paste this somewhere
-	WinActivate("[CLASS:Notepad]")
-	WinWaitActive("[CLASS:Notepad]","",5)
-	ControlSend("[CLASS:Notepad]","","Edit1","^a^v")
+	;Paste into special node.js listener which will communicate to the browser
+	WinActivate("Marbles Race Result Paste Listener")
+	WinWaitActive("Marbles Race Result Paste Listener","",5)
+	SendKeepActive("Marbles Race Result Paste Listener")
+	; Need to use really janky keystrokes to paste into CLI window
+	send('!{SPACE}ep{ENTER}{ENTER}{ENTER}')
 EndIf
 

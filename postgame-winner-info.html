@@ -134,7 +134,7 @@ var loadRaces = function(firstRun=false) {
 // Any field with "class=playerName" will be setup with autocomplete using the current playerlist data
 function updateAutocomplete(){
 	$('.playerName').autocomplete({
-      source: Object.keys(playerList)
+	  source: Object.keys(playerList)
 	});
 }
 
@@ -151,20 +151,26 @@ $('#clearAll').click(function(){
 // Tool for adding proper suffixes to numbers for 1st, 2nd, 3rd, 4th, etc
 const english_ordinal_rules = new Intl.PluralRules("en", {type: "ordinal"});
 const suffixes = {
-    one: "st",
-    two: "nd",
-    few: "rd",
-    other: "th"
+	one: "st",
+	two: "nd",
+	few: "rd",
+	other: "th"
 };
 function ordinal(number) {
-    const suffix = suffixes[english_ordinal_rules.select(number)];
-    return suffix;
+	const suffix = suffixes[english_ordinal_rules.select(number)];
+	return suffix;
 }
 
 
 function calcNthPlaceFinishesTonight(playerName, nthPlace) {
 	// Map player name to record ID, since this is what is seen in Race table data
-	var playerID = playerList[playerName].recordID
+	try{
+		var playerID = playerList[playerName].recordID
+	}
+	catch(e){
+		console.error(`Player ${playerName} not found in database`)
+		return false
+	}
 
 	// Use the appropriate field name based on which place we're looking at (1st, 2nd, 3rd, etc)
 	var fieldName = config.airtable.raceFieldNamePlace[nthPlace]
@@ -200,6 +206,9 @@ $('.playerName').change(function(){
 	var playerName = this.value
 	// fieldLabel will have the text of whatever label is attached to this field (e.g. "1st Place")
 	var fieldLabel = this.labels[0].outerText
+
+	// Skip blank data since we'll error out anyway
+	if (playerName == "") return;
 
 	// Since the data we pulled is from before the end of this race, need to always add "1" to any win counter
 
@@ -281,13 +290,57 @@ $('#orderedRaceResults').change(function(){
 	
 	// Re-fill the textarea with the trimmed data
 	$('#orderedRaceResults').val(trimmedResults.join('\n'))
-	console.log(Math.min(3,trimmedResults.length))
+	
 	// Get the top 0 to 3 players and auto-fill the top-3 player slots
 	for(var i=0; i<Math.min(3,trimmedResults.length); i++){
 		$(`#player${i+1}`).val(trimmedResults[i]).change()
-		console.log(i)
 	}
 })
+
+// Websocket client to get auto-pasted race data
+function wsConnect() {
+	var ws = new WebSocket(`ws://localhost:${config.databroker.websocketPort}`);
+	ws.onopen = function() {
+		// Maybe show connection status message in future
+	};
+
+	// Handle incoming data
+	ws.onmessage = function(msg) {
+		console.log('Got data on Websocket');
+
+		// Parse to JSON
+		try{
+			var parsedData = JSON.parse(msg.data)
+		}
+		catch(e){
+			console.error(`Invalid JSON payload from Websocket: ${msg.data}`)
+			return
+		}
+
+		$('#orderedRaceResults').val(parsedData.rawResults).change()
+
+		// Send data acknowledgement back
+		ws.send(JSON.stringify({messageType: 'dataACK'}))
+
+	};
+
+	ws.onclose = function(e) {
+		console.log('Socket is closed. Reconnect will be attempted in 1 second.', e.reason);
+		setTimeout(function() {
+			wsConnect();
+		}, 1000);
+	};
+
+	ws.onerror = function(err) {
+		console.error('Socket encountered error: ', err.message, 'Closing socket');
+		ws.close();
+	};
+}
+
+wsConnect();
+
+
+
 
 // Setup data refresh from Airtable every 15 seconds with an immediate refresh to start
 loadPlayers()

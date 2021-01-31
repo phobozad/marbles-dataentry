@@ -29,3 +29,6 @@ config.lfg.pointsForPlace[2] = 2
 config.lfg.pointsForPlace[3] = 2
 config.lfg.pointsForPlace[4] = 1
 config.lfg.pointsForPlace[5] = 1
+
+config.databroker={}
+config.databroker.websocketPort = 8069
