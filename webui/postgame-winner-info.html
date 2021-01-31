@@ -475,31 +475,99 @@ function insertRawResults(raceRecordID, raceResultsRaw, raceFinishers) {
 	// Insert the data into the Results table
 
 	return new Promise((resolve, reject) => {
-		airtableDB(config.airtable.resultsTableName).create(
-			[
-				{
-					'fields':{
-						[config.airtable.resultsRaceLinkedFieldName]: [raceRecordID],
-						[config.airtable.resultsRawFieldName]: raceResultsRaw,
-						[config.airtable.resultsFinishersFieldName]: raceFinishers 
-					}
-				}
-			],
-			function(err, records){
-				if(err) {
-					console.error(err);
-					reject(err);
-					return;
-				}
-				
-				console.log(`Race ID ${raceRecordID} Saved`)
-				/*records.forEach(function (record) {
-					console.log(record.getId());
-				})*/
+		// Check if an entry already exists for this
 
-				resolve();
+		var existingRecordCheck = new Promise((resolve,reject) => {
+			var recordID = false;
+			
+			airtableDB(config.airtable.raceTableName).select({
+					maxRecords: 1,
+					filterByFormula:`RECORD_ID()="${raceRecordID}"`,
+				}).eachPage(function page(records, fetchNextPage) {
+					if (records.length > 0){
+						// Check if there are any linked records
+						if(records[0].fields[config.airtable.raceResultsFieldName]){
+							// Get only one ID if there are multiple
+							recordID = records[0].fields[config.airtable.raceResultsFieldName][0]
+						}
+					}
+					fetchNextPage();
+				}, function done(error) {
+					if(error){
+						console.log(error);
+						reject(error)
+						return;
+					}
+					else{
+						resolve(recordID)
+					}
+				});
+		})
+
+		// Need to wait for select query to complete before taking next action
+		existingRecordCheck.then(function(existingRecordID){
+			// No existing record, insert as new
+			if(existingRecordID===false){
+				airtableDB(config.airtable.resultsTableName).create(
+					[
+						{
+							'fields':{
+								[config.airtable.resultsRaceLinkedFieldName]: [raceRecordID],
+								[config.airtable.resultsRawFieldName]: raceResultsRaw,
+								[config.airtable.resultsFinishersFieldName]: raceFinishers 
+							}
+						}
+					],
+					function(err, records){
+						if(err) {
+							console.error(err);
+							reject(err);
+							return;
+						}
+						
+						console.log(`Race ID ${raceRecordID} Saved`)
+						/*records.forEach(function (record) {
+							console.log(record.getId());
+						})*/
+
+						resolve();
+					}
+				);
 			}
-		);
+			// Existing record found, update existing instead of creating new
+			else{
+				console.log(`Existing record found: ${existingRecordID}`)
+				airtableDB(config.airtable.resultsTableName).update(
+					[
+						{
+							'id': existingRecordID,
+							'fields':{
+								[config.airtable.resultsRawFieldName]: raceResultsRaw,
+								[config.airtable.resultsFinishersFieldName]: raceFinishers 
+							}
+						}
+					],
+					function(err, records){
+						if(err) {
+							console.error(err);
+							reject(err);
+							return;
+						}
+						
+						console.log(`Race ID ${raceRecordID} updated`)
+						/*records.forEach(function (record) {
+							console.log(record.getId());
+						})*/
+
+						resolve();
+					}
+				);
+			}
+		})
+		
+
+
+
 	});
 }
 

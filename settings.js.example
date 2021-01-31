@@ -22,6 +22,8 @@ config.airtable.raceSeasonFieldName = "Season"
 config.airtable.raceWeekFieldName = "Week"
 config.airtable.raceNumberFieldName = "Race"
 config.airtable.raceLocationFieldName = "Location"
+config.airtable.raceResultsFieldName = "Results"
+config.airtable.racePrimaryKeyFieldName = "RaceID"
 // Result table name and field names
 config.airtable.resultsTableName = "Results"
 config.airtable.resultsRawFieldName = "Ordered Result (from MOS)"
