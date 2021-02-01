@@ -60,6 +60,6 @@ If WinActive($windowTitle) Then
 	$dateTime = StringReplace($dateTime,'/','-')
 	$dateTime = StringReplace($dateTime,':','_')
 	; Write file to working directory
-	FileWrite("MarblesResults_" & $dateTime, ClipGet())
+	FileWrite("MarblesResults_" & $dateTime & ".txt", ClipGet())
 EndIf
 
