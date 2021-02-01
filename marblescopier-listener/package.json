@@ -1,0 +1,22 @@
+{
+	"name": "marblescopier-listener",
+	"version": "0.0.1",
+	"license": "Zlib",
+	"main": "marblescopier-listener.js",
+	"bin": {
+		"main": "marblescopier-listener.js"
+	},
+	"dependencies": {
+		"chalk": "^4.1.0",
+		"pkg": "^4.4.9",
+		"websocket": "^1.0.33"
+	},
+	"engines": {
+		"node": ">=0.14.0"
+	},
+	"scripts": {
+		"buildwin": "rmdir /S /Q build & pkg . -t node14-win-x64 --out-path build",
+		"prepackagewin": "rename \"build\\marblescopier-listener.exe\" \"marblescopier-listener-%npm_package_version%.exe\"",
+		"packagewin": "powershell Compress-Archive 'build\\*' 'build\\marblescopier-listener-%npm_package_version%-win64.zip'"
+	}
+}

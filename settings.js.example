@@ -6,6 +6,41 @@ config.airtable={}
 config.airtable.apiKey = "keyDKkn3md78aQ"
 config.airtable.baseID = "applk132m1nd7ak"
 // This is the table that contains player stats you want to pull from (e.g. win count)
-config.airtable.tableName = "Players"
+config.airtable.playerTableName = "Players"
 // This is the field name (column) in the table that contains the user/player name
-config.airtable.playerFieldName = "PlayerName"
+config.airtable.playerFieldName = "Name"
+config.airtable.playerPointsFieldName = "TO - Total Points Current"
+config.airtable.playerLeaderboardViewName = "Leaderboard-v2"
+// Race result table name
+config.airtable.raceTableName = "Races"
+config.airtable.raceFieldNamePlace={}
+config.airtable.raceFieldNamePlace[1] = "1st Place (+3)"
+config.airtable.raceFieldNamePlace[2] = "2nd Place (+2)"
+config.airtable.raceFieldNamePlace[3] = "3rd Place (+2)"
+config.airtable.raceFieldNamePlace[4] = "4th Place (+1)"
+config.airtable.raceFieldNamePlace[5] = "5th Place (+1)"
+config.airtable.raceSeasonFieldName = "Season"
+config.airtable.raceWeekFieldName = "Week"
+config.airtable.raceNumberFieldName = "Race"
+config.airtable.raceLocationFieldName = "Location"
+config.airtable.raceResultsFieldName = "Results"
+config.airtable.racePrimaryKeyFieldName = "RaceID"
+config.airtable.raceResultsRawFieldName = "Race Order (from MOS)"
+config.airtable.raceFinishersFieldName = "Finishers"
+// Location table name and field names
+config.airtable.locationTableName = "Locations"
+config.airtable.locationNameField = "Name"
+
+// Race result point calculations
+config.lfg={}
+config.lfg.season="ST"
+config.lfg.week="WT"
+config.lfg.pointsForPlace={}
+config.lfg.pointsForPlace[1] = 3
+config.lfg.pointsForPlace[2] = 2
+config.lfg.pointsForPlace[3] = 2
+config.lfg.pointsForPlace[4] = 1
+config.lfg.pointsForPlace[5] = 1
+
+config.databroker={}
+config.databroker.websocketPort = 8069
