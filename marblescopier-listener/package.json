@@ -2,12 +2,13 @@
 	"name": "marblescopier-listener",
 	"version": "0.0.1",
 	"license": "Zlib",
-	"main": "marblescopier-listener",
+	"main": "marblescopier-listener.js",
 	"bin": {
-		"main": "marblescopier-listener"
+		"main": "marblescopier-listener.js"
 	},
 	"dependencies": {
 		"chalk": "^4.1.0",
+		"pkg": "^4.4.9",
 		"websocket": "^1.0.33"
 	},
 	"engines": {
