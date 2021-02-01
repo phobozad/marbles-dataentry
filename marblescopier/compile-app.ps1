@@ -1,0 +1,14 @@
+Write-Output "Checking for AutoIt Aut2Exe tool..."
+if(Test-Path ..\autoit-v3\install\Aut2Exe\Aut2exe.exe -PathType Leaf)
+{
+    Write-Output "AutoIt Found, compiling"
+}
+else{
+    Write-Output "No AutoIt files found, downloading from https://www.autoitscript.com/files/autoit3/autoit-v3.zip"
+    Invoke-WebRequest -Uri https://www.autoitscript.com/files/autoit3/autoit-v3.zip -OutFile .\autoit-v3.zip
+    Expand-Archive .\autoit-v3.zip -DestinationPath ..\autoit-v3 -Force
+    del .\autoit-v3.zip
+    Write-Output "Compiling..."
+}
+..\autoit-v3\install\Aut2Exe\Aut2exe /in .\marblescopier.au3 /out .\marblescopier.exe
+write-Output "Done."
