@@ -53,7 +53,13 @@
 				<div class="col">
 					<input id='raceLocation' class='form-control form-control-sm'>
 				</div>
-				<div class="col-auto text-right"><button id='addBonusBtn' type='button' class='btn btn-small btn-secondary' disabled>Add Bonus</button></div>
+				<div class="col-auto text-right">
+					<div class="dropdown">
+						<button id='addBonusBtn' type='button' class='btn btn-small btn-secondary dropdown-toggle' data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Add Bonus</button>
+						<div id ='addBonusDropdownBtn' class="dropdown-menu" aria-labelledby="addBonusBtn">
+						</div>
+					</div>
+				</div>
 				<div class="col-auto text-right"><button id='createRaceBtn' type='button' class='btn btn-small btn-success'>Create Race</button></div>
 			</div>
 
@@ -123,6 +129,42 @@
 				</div>
 			</div>
 		</form>
+		</div>
+
+		<!-- Add Bonus Modal Dialog -->
+		<div class="modal fade" id="addBonusModal" tabindex="-1" aria-labelledby="addBonusModalLabel" aria-hidden="true">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title" id="addBonusModalLabel">Add Bonus</h5>
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+						</button>
+					</div>
+					<div class="modal-body">
+						<div class="container-fluid">
+							<div class="form-group form-row">
+								<label for='bonusType' class='col-auto col-form-label'>Bonus:</label>
+								<div class="col">
+									<!--<input id='bonusType' class='form-control form-control-sm'>-->
+									<select id='bonusType' class="custom-select">
+									</select>
+								</div>
+							</div>
+							<div class="form-group form-row">
+								<label for='bonusPlayer' class='col-auto col-form-label'>Player:</label>
+								<div class="col ui-front">
+									<input id='bonusPlayer' class='form-control form-control-sm playerName'>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button id='addBonusCancelBtn' type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+						<button id='addBonusSaveBtn' type="button" class="btn btn-primary disabled">Save Bonus</button>
+					</div>
+				</div>
+			</div>
 		</div>
 		
 		<script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
@@ -291,6 +333,39 @@ var loadLocations = function() {
 	});
 };
 
+
+// playerList holds cache of player names pulled from Airtable
+var bonusList = {}
+
+// loadBonusCategories updates the cache of Bonus Categories from Airtable for auto-filling
+async function loadBonusCategories() {
+	
+	var newbonusList = {}
+	// Pull data from the "Bonus-Categories" table for this week
+	var records = await airtableDB(config.airtable.bonusCategoryTableName).select({}).all().catch(error => {
+		console.error(error)
+	})
+
+	records.forEach(function(record){
+		// Pull the Airtable record ID for each bonus type
+		var bonusName = record.get(config.airtable.bonusCategoryNameFieldName)
+		// And add each bonus to the bonusList with the relevant attributes
+		newbonusList[bonusName] = {}
+		newbonusList[bonusName].recordID = record.getId()
+		
+		// Loop over all fields from Airtable, grab the value and shove it into the bonusList object
+		Object.keys(record.fields).forEach(fieldName => {
+			newbonusList[bonusName][fieldName] = record.fields[fieldName]
+		});
+	})
+
+	// Update bonus list with the new data
+	bonusList = newbonusList
+
+	// Refresh auto-complete entries
+	updateBonusAutocomplete()
+}
+
 // Any field with "class=playerName" will be setup with autocomplete using the current playerlist data
 function updatePlayerAutocomplete(){
 	$('.playerName').autocomplete({
@@ -303,6 +378,28 @@ function updateLocationAutocomplete() {
 		source: Object.keys(locationList)
 	})
 }
+
+function updateBonusAutocomplete() {
+
+	// Clear current list
+	$('#bonusType').empty()
+	$('#addBonusDropdownBtn').empty()
+	// Add bonus types to list, sorted alphabetically
+	Object.keys(bonusList).sort().forEach(bonus => {
+		$('#bonusType').append(`<option value="${bonus}">${bonus}</option>`)
+		$('#addBonusDropdownBtn').append(`<button class="dropdown-item" type="button" data-toggle="modal" data-target="#addBonusModal" data-bonus="${bonus}">${bonus}</button>`)
+	})
+
+}
+
+$('#addBonusModal').on('show.bs.modal', function (event) {
+	var button = $(event.relatedTarget) // Button that triggered the modal
+	var bonus = button.data('bonus') // Extract info from data-* attributes
+
+	// Update the select in the modal dialog
+	var modal = $(this)
+	modal.find('#bonusType').val(bonus)
+})
 
 // Setup action when refresh button is clicked to manually pull fresh data from airtable
 $('#refreshPlayerlist').click(function(){
@@ -738,6 +835,13 @@ $('#refreshRanks').click(async function refreshRanksClick(){
 	await addPlayerRank()
 })
 
+
+$('#addBonusCancelBtn').click(function addBonusCancelBtnClick(){
+	// Clear any inputs when cancelling vs just closing the dialog
+	$('#bonusType').val('')
+	$('#bonusPlayer').val('')
+})
+
 // Setup data refresh from Airtable every 15 seconds with an immediate refresh to start
 loadPlayers()
 var airtablePlayerRefreshTimer = setInterval(loadPlayers, 15000);
@@ -747,6 +851,8 @@ loadRaces(true)
 var airtableRaceRefreshTimer = setInterval(loadRaces, 30000);
 
 loadLocations()
+
+loadBonusCategories()
 
 $('#season').val(config.lfg.season)
 $('#week').val(config.lfg.week)
