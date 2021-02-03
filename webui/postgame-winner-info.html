@@ -575,10 +575,6 @@ async function insertRace(raceNumber, locationIDRef=false, raceResultsRaw=false,
 
 	// List of fields/values to insert
 	var fields = {}
-	// Required fields
-	fields[config.airtable.raceSeasonFieldName] = config.lfg.season
-	fields[config.airtable.raceWeekFieldName] = config.lfg.week
-	fields[config.airtable.raceNumberFieldName] = raceNumber
 
 	// For optional parameters, add these if they were passed in
 	if(locationIDRef !== false){
@@ -600,6 +596,12 @@ async function insertRace(raceNumber, locationIDRef=false, raceResultsRaw=false,
 	// No existing record, create one
 	if (recordID===false){
 		console.log('No existing race found, creating new race')
+		
+		// Required fields for a new race
+		fields[config.airtable.raceSeasonFieldName] = config.lfg.season
+		fields[config.airtable.raceWeekFieldName] = config.lfg.week
+		fields[config.airtable.raceNumberFieldName] = raceNumber
+		
 		var newRecord = await airtableDB(config.airtable.raceTableName).create(
 			[
 				{
@@ -622,10 +624,7 @@ async function insertRace(raceNumber, locationIDRef=false, raceResultsRaw=false,
 			[
 				{
 					'id': recordID,
-					'fields':{
-						[config.airtable.raceResultsRawFieldName]: raceResultsRaw,
-						[config.airtable.raceFinishersFieldName]: raceFinishers 
-					}
+					'fields': fields
 				}
 			]
 		).catch(error => {
@@ -656,6 +655,7 @@ async function saveRaceRaw(){
 	if(locationList[$('#raceLocation').val()] !== undefined){
 		locationIDRef = locationList[$('#raceLocation').val()].recordID
 	}
+	console.log(`Location: ${locationIDRef}`)
 
 	// Create/update the race using the above info
 	await insertRace(raceNumber, locationIDRef, resultsRaw, raceFinishers);
