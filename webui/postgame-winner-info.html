@@ -615,6 +615,10 @@ async function insertRace(raceNumber, locationIDRef=false, raceResultsRaw=false,
 			
 		// Save the record ID we just created
 		recordID = newRecord[0].getId();
+
+		// Add stub record into local cache for this race to help avoid duplicates while Airtable processes
+		raceList[recordID]=fields
+
 		console.log(`Race Created. New Race Record ID: ${recordID}`);
 	}
 	else{
@@ -655,7 +659,6 @@ async function saveRaceRaw(){
 	if(locationList[$('#raceLocation').val()] !== undefined){
 		locationIDRef = locationList[$('#raceLocation').val()].recordID
 	}
-	console.log(`Location: ${locationIDRef}`)
 
 	// Create/update the race using the above info
 	await insertRace(raceNumber, locationIDRef, resultsRaw, raceFinishers);
