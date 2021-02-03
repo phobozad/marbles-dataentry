@@ -570,92 +570,50 @@ function getKeyByValue(object, value) {
   return Object.keys(object).find(key => object[key] === value);
 }
 
-
-// Create a new Race record
-function createRace(raceNumber, locationIDRef=false, raceResultsRaw=false, raceFinishers=false) {
-
-	// List of fields/values to insert
-	var fields = {}
-	// Required fields
-	fields[config.airtable.raceSeasonFieldName] = config.lfg.season
-	fields[config.airtable.raceWeekFieldName] = config.lfg.week
-	fields[config.airtable.raceNumberFieldName] = raceNumber
-
-	// For optional parameters, add these if they were passed in
-	if(locationIDRef !== false){
-		fields[config.airtable.raceLocationFieldName] = [locationIDRef]
-	}
-	if(raceResultsRaw !== false){
-		fields[config.airtable.raceResultsRawFieldName] = raceResultsRaw
-	}
-	if(raceFinishers !== false){
-		fields[config.airtable.raceFinishersFieldName] = raceFinishers
-	}
-	
-	airtableDB(config.airtable.raceTableName).create(
-		[
-			{
-				'fields': fields
-			}
-		],
-		{typecast: true},
-		function(err, records){
-			if(err) {
-				console.error(err);
-				return
-			}
-			
-			// Save the record ID we just created to link the results to this race below
-			raceRecordID = records[0].getId();
-			console.log(`Race Created. New Race Record ID: ${raceRecordID}`);
-
-			return raceRecordID;
-		}
-	);
-}
-
-async function updateRace(raceNumber, raceResultsRaw, raceFinishers){
-	// List of fields/values to insert
-	var fields = {}
-	// Required fields
-	fields[config.airtable.raceSeasonFieldName] = config.lfg.season
-	fields[config.airtable.raceWeekFieldName] = config.lfg.week
-	fields[config.airtable.raceNumberFieldName] = raceNumber
-
-	// For optional parameters, add these if they were passed in
-	if(locationIDRef !== false){
-		fields[config.airtable.raceLocationFieldName] = [locationIDRef]
-	}
-	if(raceResultsRaw !== false){
-		fields[config.airtable.raceResultsRawFieldName] = raceResultsRaw
-	}
-	if(raceFinishers !== false){
-		fields[config.airtable.raceFinishersFieldName] = raceFinishers
-	}
-}
-
-async function insertRawResults(raceNumber, raceResultsRaw, raceFinishers) {
+async function insertRace(raceNumber, locationIDRef=false, raceResultsRaw=false, raceFinishers=false) {
 	// Insert the data into the Results table
 
-	// Check if an entry already exists for this
-	var recordID = false;	
-	var selectFilter = `AND({${config.airtable.raceSeasonFieldName}}="${config.lfg.season}", {${config.airtable.raceWeekFieldName}}="${config.lfg.week}", {${config.airtable.raceNumberFieldName}}=${raceNumber})`
-	
-	var records = await airtableDB(config.airtable.raceTableName).select({
-		maxRecords: 1,
-		filterByFormula: selectFilter,
-		}).all().catch(error => {
-			console.log(error);
-	})
-	
-	// Check if we found any results and grab the record ID if we did
-	if (records.length>0){
-		recordID = records[0].id
+	// List of fields/values to insert
+	var fields = {}
+	// Required fields
+	fields[config.airtable.raceSeasonFieldName] = config.lfg.season
+	fields[config.airtable.raceWeekFieldName] = config.lfg.week
+	fields[config.airtable.raceNumberFieldName] = raceNumber
+
+	// For optional parameters, add these if they were passed in
+	if(locationIDRef !== false){
+		fields[config.airtable.raceLocationFieldName] = [locationIDRef]
 	}
+	if(raceResultsRaw !== false){
+		fields[config.airtable.raceResultsRawFieldName] = raceResultsRaw
+	}
+	if(raceFinishers !== false){
+		fields[config.airtable.raceFinishersFieldName] = raceFinishers
+	}
+
+	// Check if an entry already exists for this
+
+	// First pull latest info from airtables in case it was created since the last refresh
+	await loadRaces()
+	var recordID = checkRaceExists(raceNumber)
 
 	// No existing record, create one
 	if (recordID===false){
-		console.log("Unimplemented")
+		console.log('No existing race found, creating new race')
+		var newRecord = await airtableDB(config.airtable.raceTableName).create(
+			[
+				{
+					'fields': fields
+				}
+			],
+			{typecast: true}
+		).catch(error => {
+			console.error(error);
+		});
+			
+		// Save the record ID we just created
+		recordID = newRecord[0].getId();
+		console.log(`Race Created. New Race Record ID: ${recordID}`);
 	}
 	else{
 		// Existing record, update existing instead of creating new
@@ -669,20 +627,13 @@ async function insertRawResults(raceNumber, raceResultsRaw, raceFinishers) {
 						[config.airtable.raceFinishersFieldName]: raceFinishers 
 					}
 				}
-			],
-			function(err, records){
-				if(err) {
-					console.error(err);
-					reject(err);
-					return;
-				}
-				
-				console.log(`Race ID ${recordID} updated`)
-				/*records.forEach(function (record) {
-					console.log(record.getId());
-				})*/
-			}
-		);
+			]
+		).catch(error => {
+			console.error(error);
+		});
+
+		console.log(`Race ID ${recordID} updated`)
+
 	}
 }
 
@@ -691,9 +642,7 @@ async function saveRaceRaw(){
 
 	// Check if Race already exists in Race table.  If not, then we need to create it
 	var raceNumber = $('#raceInput').val()
-	// First pull latest info from airtables in case it was created since the last refresh
-	await loadRaces()
-	var raceRecordID = checkRaceExists(raceNumber)
+	
 	var resultsRaw = false
 	if($('#orderedRaceResults').val() != ""){
 		resultsRaw = $('#orderedRaceResults').val()
@@ -708,14 +657,8 @@ async function saveRaceRaw(){
 		locationIDRef = locationList[$('#raceLocation').val()].recordID
 	}
 
-	if(raceRecordID === false){
-		// No existing race, create a new record
-		await createRace(raceNumber,locationIDRef,resultsRaw,raceFinishers);
-	}
-	else{
-		// Existing race, just update this one
-		await insertRawResults(raceNumber,resultsRaw,raceFinishers)
-	}
+	// Create/update the race using the above info
+	await insertRace(raceNumber, locationIDRef, resultsRaw, raceFinishers);
 	
 	// After the data insert is complete, pull new player info and update rank
 	await loadLeaderboard()
