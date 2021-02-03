@@ -49,10 +49,12 @@
 			</div>
 
 			<div class="form-group form-row">
-				<label for='raceLocation' class='col-3 col-form-label'>Track:</label>
-				<div class="col-9">
+				<label for='raceLocation' class='col-auto col-form-label'>Track:</label>
+				<div class="col">
 					<input id='raceLocation' class='form-control form-control-sm'>
 				</div>
+				<div class="col-auto text-right"><button id='addBonusBtn' type='button' class='btn btn-small btn-secondary' disabled>Add Bonus</button></div>
+				<div class="col-auto text-right"><button id='createRaceBtn' type='button' class='btn btn-small btn-success'>Create Race</button></div>
 			</div>
 
 			<div class="form-row">
@@ -710,6 +712,24 @@ async function saveRaceRaw(){
 	}, config.airtable.rankUpdateDelayMilliseconds);
 	
 }
+
+$('#createRaceBtn').click(async function createRaceBtnClick(){
+	var raceNumber = $('#raceInput').val()
+	
+	// Check we have a valid race number
+	if(raceNumber > 0){
+		// Lookup record ID for the selected location to link it in the table
+		var locationIDRef = false
+		if(locationList[$('#raceLocation').val()] !== undefined){
+			locationIDRef = locationList[$('#raceLocation').val()].recordID
+		}
+
+		await insertRace(raceNumber, locationIDRef)
+	}
+	else{
+		console.error("Can't create race. Invalid Race Number")
+	}
+})
 
 // Action for "Refresh Ranks" button
 $('#refreshRanks').click(async function refreshRanksClick(){
