@@ -667,9 +667,13 @@ async function saveRaceRaw(){
 	// Create/update the race using the above info
 	await insertRace(raceNumber, locationIDRef, resultsRaw, raceFinishers);
 	
-	// After the data insert is complete, pull new player info and update rank
-	await loadLeaderboard()
-	await addPlayerRank()
+	// After the data insert is complete, pull new player info and update rank.
+	// Configurable delay to let Airtable hopefully finish automations first
+	setTimeout(async function delayedLeaderUpdate(){
+		await loadLeaderboard()
+		await addPlayerRank()
+	}, config.airtable.rankUpdateDelayMilliseconds);
+	
 }
 
 // Action for "Refresh Ranks" button

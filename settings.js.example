@@ -30,6 +30,7 @@ config.airtable.raceFinishersFieldName = "Finishers"
 // Location table name and field names
 config.airtable.locationTableName = "Locations"
 config.airtable.locationNameField = "Name"
+config.airtable.rankUpdateDelayMilliseconds = 5000
 
 // Race result point calculations
 config.lfg={}
