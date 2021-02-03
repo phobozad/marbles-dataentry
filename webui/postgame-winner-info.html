@@ -382,6 +382,11 @@ function addPlayerRank(){
 			// Append text right after current blurb
 			$(`#announcerCopyplayer${i}Rank`).empty();
 			$(`#announcerCopyplayer${i}Rank`).append(copyText);
+
+			// Animate the text to indicate it was updated
+			$(`#announcerCopyplayer${i}Rank`)
+				.fadeTo('slow',0.25)
+				.fadeTo('fast',1.0);
 		}
 	}
 	
