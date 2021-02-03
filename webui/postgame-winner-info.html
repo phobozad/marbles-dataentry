@@ -327,15 +327,6 @@ function ordinal(number) {
 
 
 function calcNthPlaceFinishesTonight(playerName, nthPlace) {
-	// Map player name to record ID, since this is what is seen in Race table data
-	try{
-		var playerID = playerList[playerName].recordID
-	}
-	catch(e){
-		console.error(`Player ${playerName} not found in database`)
-		return false
-	}
-
 	// Use the appropriate field name based on which place we're looking at (1st, 2nd, 3rd, etc)
 	var fieldName = config.airtable.raceFieldNamePlace[nthPlace]
 
@@ -344,7 +335,7 @@ function calcNthPlaceFinishesTonight(playerName, nthPlace) {
 	// Loop over all races and check for the playerID in the results
 	Object.keys(raceList).forEach(race => {
 		// If the player ID matches the race result field, increment the counter
-		if(raceList[race][fieldName] == playerID){
+		if(raceList[race][fieldName] == playerName){
 			resultCount++;
 		}
 
@@ -361,6 +352,45 @@ function calcTopFinishesTonight(playerName, nthPlace) {
 		resultCount += calcNthPlaceFinishesTonight(playerName,i)
 	}
 
+	return resultCount;
+}
+
+function getPlayerRecordID(playerName){
+	// Map player name to record ID, since this is what is seen in Race table data. "false" if not found
+	var playerID = false
+	try{
+		var playerID = playerList[playerName].recordID
+	}
+	catch(e){
+		console.error(`Player ${playerName} not found in database`)
+	}
+
+	return playerID
+}
+
+function calcLastPlaceFinishesTonight(playerName){
+	var resultCount = 0
+
+	// Loop over all races and check for the playerName in the results
+	Object.keys(raceList).forEach(race => {
+		// If the player ID matches the race result field, increment the counter
+		if(raceList[race][config.airtable.raceFieldNameLastPlace] == playerName){
+			resultCount++;
+		}
+	});
+
+	return resultCount
+}
+
+function calcBigSixFinishesTonight(playerName){
+	var resultCount = 0
+
+	// First get top 5 placements
+	resultCount += calcTopFinishesTonight(playerName,5)
+
+	// Then add Last place to make the Big Six
+	resultCount += calcLastPlaceFinishesTonight(playerName)
+	
 	return resultCount;
 }
 
@@ -429,26 +459,26 @@ $('.playerName').change(function(){
 
 	}
 	else if (this.id == 'player2'){
-		// Count all top-5 placements
-		var secondPlaceTopPlacements = calcTopFinishesTonight(playerName,5) + 1
+		// Count all top-5 placements + last place placements
+		var secondPlaceBigSixPlacements = calcBigSixFinishesTonight(playerName) + 1
 		var secondPlacePoints = playerList[playerName][config.airtable.playerPointsFieldName] + config.lfg.pointsForPlace[2]
 
 		copyText.append(`<strong><mark>${playerName}</mark></strong>. `)
-		copyText.append(`This is their <b>${secondPlaceTopPlacements}${ordinal(secondPlaceTopPlacements)}</b> time placing in the big five `)
+		copyText.append(`This is their <b>${secondPlaceBigSixPlacements}${ordinal(secondPlaceBigSixPlacements)}</b> time placing in the big six `)
 		copyText.append(`and they've got <b>${secondPlacePoints}</b> points now. `)
 
 	}
 	else if (this.id == 'player3'){
-		// Count all top-5 placements
-		var thirdPlaceTopPlacements = calcTopFinishesTonight(playerName,5) + 1
+		// Count all top-5 placements + last place placements
+		var thirdPlaceBigSixPlacements = calcBigSixFinishesTonight(playerName) + 1
 		var thirdPlacePoints = playerList[playerName][config.airtable.playerPointsFieldName] + config.lfg.pointsForPlace[3]
 
 		copyText.append(`<strong><mark>${playerName}</mark></strong>. `)
-		if(thirdPlaceTopPlacements==1){
-			copyText.append(`This is their <b>${thirdPlaceTopPlacements}${ordinal(thirdPlaceTopPlacements)}</b> time making the big five `)
+		if(thirdPlaceBigSixPlacements==1){
+			copyText.append(`This is their <b>${thirdPlaceBigSixPlacements}${ordinal(thirdPlaceBigSixPlacements)}</b> time making the big six `)
 		}
 		else{
-			copyText.append(`They've made the big five <b>${thirdPlaceTopPlacements}</b> times now `)
+			copyText.append(`They've made the big six <b>${thirdPlaceBigSixPlacements}</b> times now `)
 		}
 		copyText.append(`and are up to <b>${thirdPlacePoints}</b> points. `)
 
