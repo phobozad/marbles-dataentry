@@ -452,6 +452,10 @@ $('.playerName').change(function(){
 	// Make the output show up in the appropriate section of the page (announcerCopy<fieldID>)
 	$(`#announcerCopy${this.id}Blurb`).empty();
 	$(`#announcerCopy${this.id}Blurb`).append(copyText);
+
+	// Also need to clear out ranking info if its there, since this will be stale now
+	$(`#announcerCopy${this.id}Rank`).empty();
+
 })
 
 // Mark location field as required if this is a new map
