@@ -135,34 +135,36 @@
 		<div class="modal fade" id="addBonusModal" tabindex="-1" aria-labelledby="addBonusModalLabel" aria-hidden="true">
 			<div class="modal-dialog">
 				<div class="modal-content">
-					<div class="modal-header">
-						<h5 class="modal-title" id="addBonusModalLabel">Add Bonus</h5>
-						<button type="button" class="close" data-dismiss="modal" aria-label="Close">
-						<span aria-hidden="true">&times;</span>
-						</button>
-					</div>
-					<div class="modal-body">
-						<div class="container-fluid">
-							<div class="form-group form-row">
-								<label for='bonusType' class='col-auto col-form-label'>Bonus:</label>
-								<div class="col">
-									<!--<input id='bonusType' class='form-control form-control-sm'>-->
-									<select id='bonusType' class="custom-select">
-									</select>
+					<form id='addBonusForm' action='javascript:;' onsubmit='saveBonus()'>
+						<div class="modal-header">
+							<h5 class="modal-title" id="addBonusModalLabel">Add Bonus</h5>
+							<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+							<span aria-hidden="true">&times;</span>
+							</button>
+						</div>
+						<div class="modal-body">
+							<div class="container-fluid">
+								<div class="form-group form-row">
+									<label for='bonusType' class='col-auto col-form-label'>Bonus:</label>
+									<div class="col">
+										<!--<input id='bonusType' class='form-control form-control-sm'>-->
+										<select id='bonusType' class="custom-select" required>
+										</select>
+									</div>
 								</div>
-							</div>
-							<div class="form-group form-row">
-								<label for='bonusPlayer' class='col-auto col-form-label'>Player:</label>
-								<div class="col ui-front">
-									<input id='bonusPlayer' class='form-control form-control-sm playerName'>
+								<div class="form-group form-row">
+									<label for='bonusPlayer' class='col-auto col-form-label'>Player:</label>
+									<div class="col ui-front">
+										<input id='bonusPlayer' class='form-control form-control-sm playerName' required>
+									</div>
 								</div>
 							</div>
 						</div>
-					</div>
-					<div class="modal-footer">
-						<button id='addBonusCancelBtn' type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-						<button id='addBonusSaveBtn' type="button" class="btn btn-primary disabled">Save Bonus</button>
-					</div>
+						<div class="modal-footer">
+							<button id='addBonusCancelBtn' type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+							<button id='addBonusSaveBtn' type="submit" class="btn btn-primary">Save Bonus</button>
+						</div>
+					</form>
 				</div>
 			</div>
 		</div>
@@ -216,7 +218,7 @@ var loadPlayers = function() {
 		}, function done(error) {
 			if(error){
 				console.log(error);
-				popToast('Airtable Error',error,'red')
+				popToast('Airtable Error',`${error.error}: ${error.message}`,'red')
 				reject();
 			}
 
@@ -248,7 +250,7 @@ function loadLeaderboard() {
 		}, function done(error) {
 			if(error){
 				console.log(error);
-				popToast('Airtable Error',error,'red')
+				popToast('Airtable Error',`${error.error}: ${error.message}`,'red')
 				reject();
 			}
 
@@ -286,7 +288,7 @@ function loadRaces (firstRun=false) {
 	}, function done(error) {
 		if(error){
 			console.log(error);
-			popToast('Airtable Error',error,'red')
+			popToast('Airtable Error',`${error.error}: ${error.message}`,'red')
 		}
 
 		// Update race list with the new data
@@ -336,7 +338,7 @@ var loadLocations = function() {
 	}, function done(error) {
 		if(error){
 			console.log(error);
-			popToast('Airtable Error',error,'red')
+			popToast('Airtable Error',`${error.error}: ${error.message}`,'red')
 		}
 
 		// Refresh the auto-complete fields with the new data
@@ -355,7 +357,7 @@ async function loadBonusCategories() {
 	// Pull data from the "Bonus-Categories" table for this week
 	var records = await airtableDB(config.airtable.bonusCategoryTableName).select({}).all().catch(error => {
 		console.error(error)
-		popToast('Airtable Error',error,'red')
+		popToast('Airtable Error',`${error.error}: ${error.message}`,'red')
 	})
 
 	records.forEach(function(record){
@@ -392,15 +394,42 @@ function updateLocationAutocomplete() {
 }
 
 function updateBonusAutocomplete() {
-
 	// Clear current list
 	$('#bonusType').empty()
 	$('#addBonusDropdownBtn').empty()
 	// Add bonus types to list, sorted alphabetically
 	Object.keys(bonusList).sort().forEach(bonus => {
-		$('#bonusType').append(`<option value="${bonus}">${bonus}</option>`)
-		$('#addBonusDropdownBtn').append(`<button class="dropdown-item" type="button" data-toggle="modal" data-target="#addBonusModal" data-bonus="${bonus}">${bonus}</button>`)
+		$('#bonusType').append(`<option value="${bonusList[bonus].recordID}">${bonus}</option>`)
+		$('#addBonusDropdownBtn').append(`<button class="dropdown-item" type="button" data-toggle="modal" data-target="#addBonusModal" data-bonus="${bonusList[bonus].recordID}">${bonus}</button>`)
 	})
+
+}
+
+// Insert bonus into airtable
+async function insertBonusRecord(bonusID,playerID,raceID){
+	var fields = {}
+	fields[config.airtable.bonusRaceFieldName] = [raceID]
+	fields[config.airtable.bonusPlayersFieldName] = [playerID]
+	fields[config.airtable.bonusTypeFieldName] = [bonusID]
+
+	var newRecord = await airtableDB(config.airtable.bonusTableName).create(
+			[
+				{
+					'fields': fields
+				}
+			],
+		).catch(error => {
+			console.error(error);
+			popToast('Airtable Error',`${error.error}: ${error.message}`,'red')
+			return
+		});
+	
+	popToast('Added Bonus',`Bonus ID ${newRecord[0].getId()} added`,'green')
+
+	// Close/clear bonus modal dialog form
+	$('#addBonusModal').modal('hide')
+	$('#bonusType').val('')
+	$('#bonusPlayer').val('')
 
 }
 
@@ -412,6 +441,31 @@ $('#addBonusModal').on('show.bs.modal', function (event) {
 	var modal = $(this)
 	modal.find('#bonusType').val(bonus)
 })
+
+
+function saveBonus(){
+	var raceID = checkRaceExists($('#raceInput').val())
+	var bonusID = $('#bonusType').val()
+	try{
+		var playerID = playerList[$('#bonusPlayer').val()].recordID
+	}
+	catch{
+		popToast('Unknown Player','Bonus Not saved. Player Not Found','red')
+		return
+	}
+	
+
+	console.log(`Bonus: ${bonusID}  Player: ${playerID}  Race: ${raceID}`)
+
+	// Make sure we have a Race ID to reference in the record
+	if(raceID===false){
+		console.error("Race Record not found.  Create race first.")
+		popToast('Race Not Created Yet','Race Record not found.  Create race first.','red')
+	}
+	else{
+		insertBonusRecord(bonusID,playerID,raceID)
+	}
+}
 
 // Setup action when refresh button is clicked to manually pull fresh data from airtable
 $('#refreshPlayerlist').click(async function(){
@@ -777,7 +831,7 @@ async function insertRace(raceNumber, locationIDRef=false, raceResultsRaw=false,
 			{typecast: true}
 		).catch(error => {
 			console.error(error);
-			popToast('Airtable Error',error,'red')
+			popToast('Airtable Error',`${error.error}: ${error.message}`,'red')
 		});
 			
 		// Save the record ID we just created
@@ -801,7 +855,7 @@ async function insertRace(raceNumber, locationIDRef=false, raceResultsRaw=false,
 			]
 		).catch(error => {
 			console.error(error);
-			popToast('Airtable Error',error,'red')
+			popToast('Airtable Error',`${error.error}: ${error.message}`,'red')
 		});
 
 		console.log(`Race ID ${recordID} updated`)
