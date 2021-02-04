@@ -15,5 +15,5 @@ else{
     del .\build\autoit-v3.zip
     Write-Output "Compiling..."
 }
-..\autoit-v3\install\Aut2Exe\Aut2exe /in .\marblescopier.au3 /out .\build\marblescopier-$copierAppVersion.exe
+..\autoit-v3\install\Aut2Exe\Aut2exe /in .\marblescopier.au3 /out .\build\marblescopier-$copierAppVersion.exe /comp 0
 write-Output "Done."
