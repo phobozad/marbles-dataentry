@@ -34,6 +34,11 @@ config.airtable.locationNameField = "Name"
 config.airtable.rankUpdateDelayMilliseconds = 5000
 config.airtable.bonusCategoryTableName = "Bonuses-Categories"
 config.airtable.bonusCategoryNameFieldName = "Name"
+config.airtable.bonusTableName = "Bonuses"
+config.airtable.bonusRaceFieldName = "Race"
+config.airtable.bonusPlayersFieldName = "Players"
+config.airtable.bonusTypeFieldName = "Type"
+
 
 // Race result point calculations
 config.lfg={}
