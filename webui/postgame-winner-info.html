@@ -49,14 +49,23 @@
 			</div>
 
 			<div class="form-group form-row">
-				<label for='raceLocation' class='col-3 col-form-label'>Track:</label>
-				<div class="col-9">
+				<label for='raceLocation' class='col-auto col-form-label'>Track:</label>
+				<div class="col">
 					<input id='raceLocation' class='form-control form-control-sm'>
 				</div>
+				<div class="col-auto text-right">
+					<div class="dropdown">
+						<button id='addBonusBtn' type='button' class='btn btn-small btn-secondary dropdown-toggle' data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Add Bonus</button>
+						<div id ='addBonusDropdownBtn' class="dropdown-menu" aria-labelledby="addBonusBtn">
+						</div>
+					</div>
+				</div>
+				<div class="col-auto text-right"><button id='createRaceBtn' type='button' class='btn btn-small btn-success'>Create Race</button></div>
 			</div>
 
 			<div class="form-row">
 				<div class="col"><h1>Top 3</h1></div>
+				<div class="col text-right"><button id='refreshRanks' type='button' class='btn btn-small btn-info'>Refresh Ranks</button></div>
 			</div>
 
 			<div class="form-group form-row">
@@ -109,7 +118,7 @@
 				<div class="col-4">
 					<input id='lastPlaceInput' type='number' min='0' class='form-control' required> 
 				</div>
-				<div class="col-5">
+				<div class="col-5 text-right">
 					<button id='saveOrderedRaceResults' type='submit' class='btn btn-success' data-toggle="tooltip" data-placement="bottom" title="This also saves track & creates race in table.">Save race placements</button>
 				</div>
 			</div>
@@ -121,6 +130,47 @@
 			</div>
 		</form>
 		</div>
+
+		<!-- Add Bonus Modal Dialog -->
+		<div class="modal fade" id="addBonusModal" tabindex="-1" aria-labelledby="addBonusModalLabel" aria-hidden="true">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<form id='addBonusForm' action='javascript:;' onsubmit='saveBonus()'>
+						<div class="modal-header">
+							<h5 class="modal-title" id="addBonusModalLabel">Add Bonus</h5>
+							<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+							<span aria-hidden="true">&times;</span>
+							</button>
+						</div>
+						<div class="modal-body">
+							<div class="container-fluid">
+								<div class="form-group form-row">
+									<label for='bonusType' class='col-auto col-form-label'>Bonus:</label>
+									<div class="col">
+										<!--<input id='bonusType' class='form-control form-control-sm'>-->
+										<select id='bonusType' class="custom-select" required>
+										</select>
+									</div>
+								</div>
+								<div class="form-group form-row">
+									<label for='bonusPlayer' class='col-auto col-form-label'>Player:</label>
+									<div class="col ui-front">
+										<input id='bonusPlayer' class='form-control form-control-sm playerName' required>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="modal-footer">
+							<button id='addBonusCancelBtn' type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+							<button id='addBonusSaveBtn' type="submit" class="btn btn-primary">Save Bonus</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+		<div id='toastLocation' class='position-fixed bottom-0 right-0 p-3' style='z-index: 5; right: 0; bottom: 0;''>
+		</div>
+
 		
 		<script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
 		<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
@@ -168,6 +218,7 @@ var loadPlayers = function() {
 		}, function done(error) {
 			if(error){
 				console.log(error);
+				popToast('Airtable Error',`${error.error}: ${error.message}`,'red')
 				reject();
 			}
 
@@ -199,6 +250,7 @@ function loadLeaderboard() {
 		}, function done(error) {
 			if(error){
 				console.log(error);
+				popToast('Airtable Error',`${error.error}: ${error.message}`,'red')
 				reject();
 			}
 
@@ -211,7 +263,7 @@ function loadLeaderboard() {
 var raceList = {}
 
 // loadRaces updates the cache of Race result data from Airtable to ensure its up-to-date
-var loadRaces = function(firstRun=false) {
+function loadRaces (firstRun=false) {
 	
 	var newRaceList = {}
 	// Pull data from the "Races" table for this week
@@ -234,7 +286,10 @@ var loadRaces = function(firstRun=false) {
 		// If there are more than 100 results, AirTables paginates the output into multiple chunks
 		fetchNextPage();
 	}, function done(error) {
-		if(error) console.log(error);
+		if(error){
+			console.log(error);
+			popToast('Airtable Error',`${error.error}: ${error.message}`,'red')
+		}
 
 		// Update race list with the new data
 		raceList = newRaceList
@@ -281,12 +336,49 @@ var loadLocations = function() {
 		// If there are more than 100 results, AirTables paginates the output into multiple chunks
 		fetchNextPage();
 	}, function done(error) {
-		if(error) console.log(error);
+		if(error){
+			console.log(error);
+			popToast('Airtable Error',`${error.error}: ${error.message}`,'red')
+		}
 
 		// Refresh the auto-complete fields with the new data
 		updateLocationAutocomplete()
 	});
 };
+
+
+// playerList holds cache of player names pulled from Airtable
+var bonusList = {}
+
+// loadBonusCategories updates the cache of Bonus Categories from Airtable for auto-filling
+async function loadBonusCategories() {
+	
+	var newbonusList = {}
+	// Pull data from the "Bonus-Categories" table for this week
+	var records = await airtableDB(config.airtable.bonusCategoryTableName).select({}).all().catch(error => {
+		console.error(error)
+		popToast('Airtable Error',`${error.error}: ${error.message}`,'red')
+	})
+
+	records.forEach(function(record){
+		// Pull the Airtable record ID for each bonus type
+		var bonusName = record.get(config.airtable.bonusCategoryNameFieldName)
+		// And add each bonus to the bonusList with the relevant attributes
+		newbonusList[bonusName] = {}
+		newbonusList[bonusName].recordID = record.getId()
+		
+		// Loop over all fields from Airtable, grab the value and shove it into the bonusList object
+		Object.keys(record.fields).forEach(fieldName => {
+			newbonusList[bonusName][fieldName] = record.fields[fieldName]
+		});
+	})
+
+	// Update bonus list with the new data
+	bonusList = newbonusList
+
+	// Refresh auto-complete entries
+	updateBonusAutocomplete()
+}
 
 // Any field with "class=playerName" will be setup with autocomplete using the current playerlist data
 function updatePlayerAutocomplete(){
@@ -301,9 +393,84 @@ function updateLocationAutocomplete() {
 	})
 }
 
+function updateBonusAutocomplete() {
+	// Clear current list
+	$('#bonusType').empty()
+	$('#addBonusDropdownBtn').empty()
+	// Add bonus types to list, sorted alphabetically
+	Object.keys(bonusList).sort().forEach(bonus => {
+		$('#bonusType').append(`<option value="${bonusList[bonus].recordID}">${bonus}</option>`)
+		$('#addBonusDropdownBtn').append(`<button class="dropdown-item" type="button" data-toggle="modal" data-target="#addBonusModal" data-bonus="${bonusList[bonus].recordID}">${bonus}</button>`)
+	})
+
+}
+
+// Insert bonus into airtable
+async function insertBonusRecord(bonusID,playerID,raceID){
+	var fields = {}
+	fields[config.airtable.bonusRaceFieldName] = [raceID]
+	fields[config.airtable.bonusPlayersFieldName] = [playerID]
+	fields[config.airtable.bonusTypeFieldName] = [bonusID]
+
+	var newRecord = await airtableDB(config.airtable.bonusTableName).create(
+			[
+				{
+					'fields': fields
+				}
+			],
+		).catch(error => {
+			console.error(error);
+			popToast('Airtable Error',`${error.error}: ${error.message}`,'red')
+			return
+		});
+	
+	popToast('Added Bonus',`Bonus ID ${newRecord[0].getId()} added`,'green')
+
+	// Close/clear bonus modal dialog form
+	$('#addBonusModal').modal('hide')
+	$('#bonusType').val('')
+	$('#bonusPlayer').val('')
+
+}
+
+$('#addBonusModal').on('show.bs.modal', function (event) {
+	var button = $(event.relatedTarget) // Button that triggered the modal
+	var bonus = button.data('bonus') // Extract info from data-* attributes
+
+	// Update the select in the modal dialog
+	var modal = $(this)
+	modal.find('#bonusType').val(bonus)
+})
+
+
+function saveBonus(){
+	var raceID = checkRaceExists($('#raceInput').val())
+	var bonusID = $('#bonusType').val()
+	try{
+		var playerID = playerList[$('#bonusPlayer').val()].recordID
+	}
+	catch{
+		popToast('Unknown Player','Bonus Not saved. Player Not Found','red')
+		return
+	}
+	
+
+	console.log(`Bonus: ${bonusID}  Player: ${playerID}  Race: ${raceID}`)
+
+	// Make sure we have a Race ID to reference in the record
+	if(raceID===false){
+		console.error("Race Record not found.  Create race first.")
+		popToast('Race Not Created Yet','Race Record not found.  Create race first.','red')
+	}
+	else{
+		insertBonusRecord(bonusID,playerID,raceID)
+	}
+}
+
 // Setup action when refresh button is clicked to manually pull fresh data from airtable
-$('#refreshPlayerlist').click(function(){
-	loadPlayers()
+$('#refreshPlayerlist').click(async function(){
+	await loadPlayers()
+	popToast('Player List updated','Player list data refreshed','green')
 })
 
 $('#clearTop3').click(function(){
@@ -326,15 +493,6 @@ function ordinal(number) {
 
 
 function calcNthPlaceFinishesTonight(playerName, nthPlace) {
-	// Map player name to record ID, since this is what is seen in Race table data
-	try{
-		var playerID = playerList[playerName].recordID
-	}
-	catch(e){
-		console.error(`Player ${playerName} not found in database`)
-		return false
-	}
-
 	// Use the appropriate field name based on which place we're looking at (1st, 2nd, 3rd, etc)
 	var fieldName = config.airtable.raceFieldNamePlace[nthPlace]
 
@@ -343,7 +501,7 @@ function calcNthPlaceFinishesTonight(playerName, nthPlace) {
 	// Loop over all races and check for the playerID in the results
 	Object.keys(raceList).forEach(race => {
 		// If the player ID matches the race result field, increment the counter
-		if(raceList[race][fieldName] == playerID){
+		if(raceList[race][fieldName] == playerName){
 			resultCount++;
 		}
 
@@ -360,6 +518,46 @@ function calcTopFinishesTonight(playerName, nthPlace) {
 		resultCount += calcNthPlaceFinishesTonight(playerName,i)
 	}
 
+	return resultCount;
+}
+
+function getPlayerRecordID(playerName){
+	// Map player name to record ID, since this is what is seen in Race table data. "false" if not found
+	var playerID = false
+	try{
+		var playerID = playerList[playerName].recordID
+	}
+	catch(e){
+		console.error(`Player ${playerName} not found in database`)
+		popToast('Not Found',`Player ${playerName} not found in database`,'red')
+	}
+
+	return playerID
+}
+
+function calcLastPlaceFinishesTonight(playerName){
+	var resultCount = 0
+
+	// Loop over all races and check for the playerName in the results
+	Object.keys(raceList).forEach(race => {
+		// If the player ID matches the race result field, increment the counter
+		if(raceList[race][config.airtable.raceFieldNameLastPlace] == playerName){
+			resultCount++;
+		}
+	});
+
+	return resultCount
+}
+
+function calcBigSixFinishesTonight(playerName){
+	var resultCount = 0
+
+	// First get top 5 placements
+	resultCount += calcTopFinishesTonight(playerName,5)
+
+	// Then add Last place to make the Big Six
+	resultCount += calcLastPlaceFinishesTonight(playerName)
+	
 	return resultCount;
 }
 
@@ -381,8 +579,14 @@ function addPlayerRank(){
 			// Append text right after current blurb
 			$(`#announcerCopyplayer${i}Rank`).empty();
 			$(`#announcerCopyplayer${i}Rank`).append(copyText);
+
+			// Animate the text to indicate it was updated
+			$(`#announcerCopyplayer${i}Rank`)
+				.fadeTo('slow',0.25)
+				.fadeTo('fast',1.0);
 		}
 	}
+	popToast('Rank Data Updated','Player rank data updated','green')
 	
 	
 
@@ -398,6 +602,7 @@ $('.playerName').change(function(){
 	if (playerName == "") return;
 	if (!(playerName in playerList)){
 		console.error(`Player ${playerName} not found in database`)
+		popToast('Not Found',`Player ${playerName} not found in database`,'red')
 		return
 	}
 
@@ -423,26 +628,26 @@ $('.playerName').change(function(){
 
 	}
 	else if (this.id == 'player2'){
-		// Count all top-5 placements
-		var secondPlaceTopPlacements = calcTopFinishesTonight(playerName,5) + 1
+		// Count all top-5 placements + last place placements
+		var secondPlaceBigSixPlacements = calcBigSixFinishesTonight(playerName) + 1
 		var secondPlacePoints = playerList[playerName][config.airtable.playerPointsFieldName] + config.lfg.pointsForPlace[2]
 
 		copyText.append(`<strong><mark>${playerName}</mark></strong>. `)
-		copyText.append(`This is their <b>${secondPlaceTopPlacements}${ordinal(secondPlaceTopPlacements)}</b> time placing in the big five `)
+		copyText.append(`This is their <b>${secondPlaceBigSixPlacements}${ordinal(secondPlaceBigSixPlacements)}</b> time placing in the big six `)
 		copyText.append(`and they've got <b>${secondPlacePoints}</b> points now. `)
 
 	}
 	else if (this.id == 'player3'){
-		// Count all top-5 placements
-		var thirdPlaceTopPlacements = calcTopFinishesTonight(playerName,5) + 1
+		// Count all top-5 placements + last place placements
+		var thirdPlaceBigSixPlacements = calcBigSixFinishesTonight(playerName) + 1
 		var thirdPlacePoints = playerList[playerName][config.airtable.playerPointsFieldName] + config.lfg.pointsForPlace[3]
 
 		copyText.append(`<strong><mark>${playerName}</mark></strong>. `)
-		if(thirdPlaceTopPlacements==1){
-			copyText.append(`This is their <b>${thirdPlaceTopPlacements}${ordinal(thirdPlaceTopPlacements)}</b> time making the big five `)
+		if(thirdPlaceBigSixPlacements==1){
+			copyText.append(`This is their <b>${thirdPlaceBigSixPlacements}${ordinal(thirdPlaceBigSixPlacements)}</b> time making the big six `)
 		}
 		else{
-			copyText.append(`They've made the big five <b>${thirdPlaceTopPlacements}</b> times now `)
+			copyText.append(`They've made the big six <b>${thirdPlaceBigSixPlacements}</b> times now `)
 		}
 		copyText.append(`and are up to <b>${thirdPlacePoints}</b> points. `)
 
@@ -451,6 +656,10 @@ $('.playerName').change(function(){
 	// Make the output show up in the appropriate section of the page (announcerCopy<fieldID>)
 	$(`#announcerCopy${this.id}Blurb`).empty();
 	$(`#announcerCopy${this.id}Blurb`).append(copyText);
+
+	// Also need to clear out ranking info if its there, since this will be stale now
+	$(`#announcerCopy${this.id}Rank`).empty();
+
 })
 
 // Mark location field as required if this is a new map
@@ -517,10 +726,13 @@ $('#orderedRaceResults').change(function(){
 })
 
 // Websocket client to get auto-pasted race data
+var connectedToRaceDataApp = false
 function wsConnect() {
 	var ws = new WebSocket(`ws://localhost:${config.databroker.websocketPort}`);
 	ws.onopen = function() {
 		// Maybe show connection status message in future
+		popToast('Companion App Connected','Connected to Race data app','green')
+		connectedToRaceDataApp = true
 	};
 
 	// Handle incoming data
@@ -533,6 +745,7 @@ function wsConnect() {
 		}
 		catch(e){
 			console.error(`Invalid JSON payload from Websocket: ${msg.data}`)
+			popToast('Data Companion Error',`Invalid JSON payload from Websocket: ${msg.data}`,'red')
 			return
 		}
 
@@ -540,11 +753,18 @@ function wsConnect() {
 
 		// Send data acknowledgement back
 		ws.send(JSON.stringify({messageType: 'dataACK'}))
+		
+		popToast('Race Data Recieved','Got race data from companion app','green')
 
 	};
 
 	ws.onclose = function(e) {
 		console.log('Socket is closed. Reconnect will be attempted in 1 second.', e.reason);
+		// Only pop toast on initial disconnection
+		if(connectedToRaceDataApp){
+			popToast('Companion App Disconnected','Lost connection to Race data app','red')
+		}
+		connectedToRaceDataApp = false
 		setTimeout(function() {
 			wsConnect();
 		}, 1000);
@@ -552,6 +772,7 @@ function wsConnect() {
 
 	ws.onerror = function(err) {
 		console.error('Socket encountered error: ', err.message, 'Closing socket');
+		//popToast('Data Companion Error',`Socket encountered error: ${err.message} Closing socket`,'red')
 		ws.close();
 	};
 }
@@ -569,141 +790,177 @@ function getKeyByValue(object, value) {
   return Object.keys(object).find(key => object[key] === value);
 }
 
-
-// Create a new Race record
-function createRace(raceNumber) {
-	// Lookup record ID for the selected location to link it in the table
-	var locationID = locationList[$('#raceLocation').val()].recordID
-
-	return new Promise((resolve,reject) => {
-		airtableDB(config.airtable.raceTableName).create(
-			[
-				{
-					'fields':{
-						[config.airtable.raceSeasonFieldName]: config.lfg.season,
-						[config.airtable.raceWeekFieldName]: config.lfg.week,
-						[config.airtable.raceNumberFieldName]: raceNumber,
-						[config.airtable.raceLocationFieldName]: [locationID],
-					}
-				}
-			],
-			{typecast: true},
-			function(err, records){
-				if(err) {
-					console.error(err);
-					reject(err);
-					return
-				}
-				
-				// Save the record ID we just created to link the results to this race below
-				raceRecordID = records[0].getId();
-				console.log(`Race Created. New Race Record ID: ${raceRecordID}`);
-
-				resolve(raceRecordID);
-			}
-		);
-	});
-}
-
-
-function insertRawResults(raceNumber, raceResultsRaw, raceFinishers) {
+async function insertRace(raceNumber, locationIDRef=false, raceResultsRaw=false, raceFinishers=false) {
 	// Insert the data into the Results table
 
-	return new Promise((resolve, reject) => {
-		// Check if an entry already exists for this
-		var recordID = false;
-		var existingRecordCheck = new Promise((resolve,reject) => {		
-			var selectFilter = `AND({${config.airtable.raceSeasonFieldName}}="${config.lfg.season}", {${config.airtable.raceWeekFieldName}}="${config.lfg.week}", {${config.airtable.raceNumberFieldName}}=${raceNumber})`
-			airtableDB(config.airtable.raceTableName).select({
-					maxRecords: 1,
-					filterByFormula: selectFilter,
-				}).eachPage(function page(records, fetchNextPage) {
-					if (records.length>0){
-						recordID = records[0].id
-						console.log(recordID)
-					}
-					fetchNextPage();
-				}, function done(error) {
-					if(error){
-						console.log(error);
-						reject(error)
-						return;
-					}
-					else{
-						resolve(recordID)
-					}
-				});
-		})
+	// List of fields/values to insert
+	var fields = {}
 
-		// Need to wait for select query to complete before taking next action
-		existingRecordCheck.then(function(existingRecordID){
-			if (existingRecordID===false){
-				console.log("Unimplemented")
-			}
-			else{
-				// Existing record, update existing instead of creating new
-				console.log(`Existing race record: ${existingRecordID}`)
-				airtableDB(config.airtable.raceTableName).update(
-					[
-						{
-							'id': existingRecordID,
-							'fields':{
-								[config.airtable.raceResultsRawFieldName]: raceResultsRaw,
-								[config.airtable.raceFinishersFieldName]: raceFinishers 
-							}
-						}
-					],
-					function(err, records){
-						if(err) {
-							console.error(err);
-							reject(err);
-							return;
-						}
-						
-						console.log(`Race ID ${raceRecordID} updated`)
-						/*records.forEach(function (record) {
-							console.log(record.getId());
-						})*/
+	// For optional parameters, add these if they were passed in
+	if(locationIDRef !== false){
+		fields[config.airtable.raceLocationFieldName] = [locationIDRef]
+	}
+	if(raceResultsRaw !== false){
+		fields[config.airtable.raceResultsRawFieldName] = raceResultsRaw
+	}
+	if(raceFinishers !== false){
+		fields[config.airtable.raceFinishersFieldName] = raceFinishers
+	}
 
-						resolve();
-					}
-				);
-			}
-		})
+	// Check if an entry already exists for this
+
+	// First pull latest info from airtables in case it was created since the last refresh
+	await loadRaces()
+	var recordID = checkRaceExists(raceNumber)
+
+	// No existing record, create one
+	if (recordID===false){
+		console.log('No existing race found, creating new race')
 		
+		// Required fields for a new race
+		fields[config.airtable.raceSeasonFieldName] = config.lfg.season
+		fields[config.airtable.raceWeekFieldName] = config.lfg.week
+		fields[config.airtable.raceNumberFieldName] = raceNumber
+		
+		var newRecord = await airtableDB(config.airtable.raceTableName).create(
+			[
+				{
+					'fields': fields
+				}
+			],
+			{typecast: true}
+		).catch(error => {
+			console.error(error);
+			popToast('Airtable Error',`${error.error}: ${error.message}`,'red')
+		});
+			
+		// Save the record ID we just created
+		recordID = newRecord[0].getId();
 
+		// Add stub record into local cache for this race to help avoid duplicates while Airtable processes
+		raceList[recordID]=fields
 
+		console.log(`Race Created. New Race Record ID: ${recordID}`);
+		popToast('Race Created',`New Race Record ID: ${recordID}`,'green')
+	}
+	else{
+		// Existing record, update existing instead of creating new
+		console.log(`Existing race record: ${recordID}`)
+		await airtableDB(config.airtable.raceTableName).update(
+			[
+				{
+					'id': recordID,
+					'fields': fields
+				}
+			]
+		).catch(error => {
+			console.error(error);
+			popToast('Airtable Error',`${error.error}: ${error.message}`,'red')
+		});
 
-	});
+		console.log(`Race ID ${recordID} updated`)
+		popToast('Race Updated',`Race ID ${recordID} updated`,'green')
+
+	}
 }
 
 // Save raw results list to database.  Triggered by form save button.
-function saveRaceRaw(){
+async function saveRaceRaw(){
 
 	// Check if Race already exists in Race table.  If not, then we need to create it
 	var raceNumber = $('#raceInput').val()
-	var raceRecordID = checkRaceExists(raceNumber)
-	var resultsRaw = $('#orderedRaceResults').val()
-	var raceFinishers = parseInt($('#lastPlaceInput').val())
+	
+	var resultsRaw = false
+	if($('#orderedRaceResults').val() != ""){
+		resultsRaw = $('#orderedRaceResults').val()
+	}
+	var raceFinishers = false
+	if($('#lastPlaceInput').val() != ""){
+		raceFinishers = parseInt($('#lastPlaceInput').val())
+	}
+	// Lookup record ID for the selected location to link it in the table
+	var locationIDRef = false
+	if(locationList[$('#raceLocation').val()] !== undefined){
+		locationIDRef = locationList[$('#raceLocation').val()].recordID
+	}
 
-	if(raceRecordID === false){
-		newRace = createRace(raceNumber);
-		var insertAction = newRace.then(function(raceRecordID){
-			 return insertRawResults(raceNumber,resultsRaw,raceFinishers)
-		});
+	// Create/update the race using the above info
+	await insertRace(raceNumber, locationIDRef, resultsRaw, raceFinishers);
+	
+	// After the data insert is complete, pull new player info and update rank.
+	// Configurable delay to let Airtable hopefully finish automations first
+	setTimeout(async function delayedLeaderUpdate(){
+		await loadLeaderboard()
+		await addPlayerRank()
+	}, config.airtable.rankUpdateDelayMilliseconds);
+	
+}
+
+$('#createRaceBtn').click(async function createRaceBtnClick(){
+	var raceNumber = $('#raceInput').val()
+	
+	// Check we have a valid race number
+	if(raceNumber > 0){
+		// Lookup record ID for the selected location to link it in the table
+		var locationIDRef = false
+		if(locationList[$('#raceLocation').val()] !== undefined){
+			locationIDRef = locationList[$('#raceLocation').val()].recordID
+		}
+
+		await insertRace(raceNumber, locationIDRef)
 	}
 	else{
-		var insertAction = insertRawResults(raceNumber,resultsRaw,raceFinishers)
+		console.error("Can't create race. Invalid Race Number")
+		popToast('Invalid Race',"Can't create race. Invalid Race Number",'red')
 	}
+})
+
+// Action for "Refresh Ranks" button
+$('#refreshRanks').click(async function refreshRanksClick(){
+	// Pull leaderboard info then update the player rank field
+	await loadLeaderboard()
+	await addPlayerRank()
+})
+
+
+$('#addBonusCancelBtn').click(function addBonusCancelBtnClick(){
+	// Clear any inputs when cancelling vs just closing the dialog
+	$('#bonusType').val('')
+	$('#bonusPlayer').val('')
+})
+
+//* Toasts *\\
+// Enable Toasts
+$('.toast').toast()
+
+// Call this to pop up a toast message
+function popToast(title,bodyText,color) {
+	var colorMap={}
+	colorMap['green'] = '#28a745'
+	colorMap['red']= '#dc3545'
 	
-	// After the data insert is complete, pull new player info and update rank
-	insertAction.then(function(){
-		return loadLeaderboard()
-	}).then(function(){
-		addPlayerRank()
+	var toastDiv = $(`<div class="toast toast-autodispose" role="alert" aria-live="assertive" aria-atomic="true" data-delay='1000'>`)
+	var toastHeader = $(`<div class="toast-header">`)
+	toastHeader.append(`<svg class="bd-placeholder-img rounded mr-2" width="20" height="20" xmlns="http://www.w3.org/2000/svg" role="img" aria-label=" :  " preserveAspectRatio="xMidYMid slice" focusable="false"><rect width="100%" height="100%" fill="${colorMap[color]}">`)
+	toastHeader.append(`<strong class="mr-auto">${title}</strong>`)
+	//toastHeader.append(`<small>11 mins ago</small>`)
+	toastHeader.append(`<button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close"><span aria-hidden="true">&times;</span>`)
+	var toastBody = $(`<div class="toast-body">`)
+	
+	toastBody.append(bodyText)
+	
+	toastDiv.append(toastHeader)
+	toastDiv.append(toastBody)
+
+	// Auto-delete toasts from DOM after they disappear
+	toastDiv.on('hidden.bs.toast', function () {
+		$(this).remove()
 	})
 
+	$('#toastLocation').append(toastDiv)
+	toastDiv.toast('show')
 }
+
 
 // Setup data refresh from Airtable every 15 seconds with an immediate refresh to start
 loadPlayers()
@@ -714,6 +971,8 @@ loadRaces(true)
 var airtableRaceRefreshTimer = setInterval(loadRaces, 30000);
 
 loadLocations()
+
+loadBonusCategories()
 
 $('#season').val(config.lfg.season)
 $('#week').val(config.lfg.week)

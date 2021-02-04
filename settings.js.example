@@ -14,11 +14,12 @@ config.airtable.playerLeaderboardViewName = "Leaderboard-v2"
 // Race result table name
 config.airtable.raceTableName = "Races"
 config.airtable.raceFieldNamePlace={}
-config.airtable.raceFieldNamePlace[1] = "1st Place (+3)"
-config.airtable.raceFieldNamePlace[2] = "2nd Place (+2)"
-config.airtable.raceFieldNamePlace[3] = "3rd Place (+2)"
-config.airtable.raceFieldNamePlace[4] = "4th Place (+1)"
-config.airtable.raceFieldNamePlace[5] = "5th Place (+1)"
+config.airtable.raceFieldNamePlace[1] = "1st Place"
+config.airtable.raceFieldNamePlace[2] = "2nd Place"
+config.airtable.raceFieldNamePlace[3] = "3rd Place"
+config.airtable.raceFieldNamePlace[4] = "4th Place"
+config.airtable.raceFieldNamePlace[5] = "5th Place"
+config.airtable.raceFieldNameLastPlace = "Last Place"
 config.airtable.raceSeasonFieldName = "Season"
 config.airtable.raceWeekFieldName = "Week"
 config.airtable.raceNumberFieldName = "Race"
@@ -30,6 +31,15 @@ config.airtable.raceFinishersFieldName = "Finishers"
 // Location table name and field names
 config.airtable.locationTableName = "Locations"
 config.airtable.locationNameField = "Name"
+config.airtable.rankUpdateDelayMilliseconds = 5000
+// Bonus Table
+config.airtable.bonusCategoryTableName = "Bonuses-Categories"
+config.airtable.bonusCategoryNameFieldName = "Name"
+config.airtable.bonusTableName = "Bonuses"
+config.airtable.bonusRaceFieldName = "Race"
+config.airtable.bonusPlayersFieldName = "Players"
+config.airtable.bonusTypeFieldName = "Type"
+
 
 // Race result point calculations
 config.lfg={}

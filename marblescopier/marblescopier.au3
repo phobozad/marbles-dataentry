@@ -33,14 +33,14 @@ WinWaitActive($windowTitle,"",5)
 ; If we do this before the window is active, the return results may be incorrect
 $windowResolution=WinGetClientSize($windowTitle)
 
-$copyX = int($windowResolution[0] * 0.2)
-$copyY = int($windowResolution[1] * 0.12)
-
-$closeX = int($windowResolution[0] * 0.5)
-$closeY = int($windowResolution[1] * 0.6)
-
 
 If WinActive($windowTitle) Then
+	$copyX = int($windowResolution[0] * 0.2)
+	$copyY = int($windowResolution[1] * 0.12)
+
+	$closeX = int($windowResolution[0] * 0.5)
+	$closeY = int($windowResolution[1] * 0.6)
+
 	; Click copy to clipboard
 	MouseClick("left",$copyX,$copyY,1,0)
 	; Click close button on popup
