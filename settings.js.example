@@ -32,6 +32,7 @@ config.airtable.raceFinishersFieldName = "Finishers"
 config.airtable.locationTableName = "Locations"
 config.airtable.locationNameField = "Name"
 config.airtable.rankUpdateDelayMilliseconds = 5000
+// Bonus Table
 config.airtable.bonusCategoryTableName = "Bonuses-Categories"
 config.airtable.bonusCategoryNameFieldName = "Name"
 config.airtable.bonusTableName = "Bonuses"
