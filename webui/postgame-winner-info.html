@@ -166,6 +166,9 @@
 				</div>
 			</div>
 		</div>
+		<div id='toastLocation' class='position-fixed bottom-0 right-0 p-3' style='z-index: 5; right: 0; bottom: 0;''>
+		</div>
+
 		
 		<script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
 		<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
@@ -213,6 +216,7 @@ var loadPlayers = function() {
 		}, function done(error) {
 			if(error){
 				console.log(error);
+				popToast('Airtable Error',error,'red')
 				reject();
 			}
 
@@ -244,6 +248,7 @@ function loadLeaderboard() {
 		}, function done(error) {
 			if(error){
 				console.log(error);
+				popToast('Airtable Error',error,'red')
 				reject();
 			}
 
@@ -279,7 +284,10 @@ function loadRaces (firstRun=false) {
 		// If there are more than 100 results, AirTables paginates the output into multiple chunks
 		fetchNextPage();
 	}, function done(error) {
-		if(error) console.log(error);
+		if(error){
+			console.log(error);
+			popToast('Airtable Error',error,'red')
+		}
 
 		// Update race list with the new data
 		raceList = newRaceList
@@ -326,7 +334,10 @@ var loadLocations = function() {
 		// If there are more than 100 results, AirTables paginates the output into multiple chunks
 		fetchNextPage();
 	}, function done(error) {
-		if(error) console.log(error);
+		if(error){
+			console.log(error);
+			popToast('Airtable Error',error,'red')
+		}
 
 		// Refresh the auto-complete fields with the new data
 		updateLocationAutocomplete()
@@ -344,6 +355,7 @@ async function loadBonusCategories() {
 	// Pull data from the "Bonus-Categories" table for this week
 	var records = await airtableDB(config.airtable.bonusCategoryTableName).select({}).all().catch(error => {
 		console.error(error)
+		popToast('Airtable Error',error,'red')
 	})
 
 	records.forEach(function(record){
@@ -402,8 +414,9 @@ $('#addBonusModal').on('show.bs.modal', function (event) {
 })
 
 // Setup action when refresh button is clicked to manually pull fresh data from airtable
-$('#refreshPlayerlist').click(function(){
-	loadPlayers()
+$('#refreshPlayerlist').click(async function(){
+	await loadPlayers()
+	popToast('Player List updated','Player list data refreshed','green')
 })
 
 $('#clearTop3').click(function(){
@@ -462,6 +475,7 @@ function getPlayerRecordID(playerName){
 	}
 	catch(e){
 		console.error(`Player ${playerName} not found in database`)
+		popToast('Not Found',`Player ${playerName} not found in database`,'red')
 	}
 
 	return playerID
@@ -518,6 +532,7 @@ function addPlayerRank(){
 				.fadeTo('fast',1.0);
 		}
 	}
+	popToast('Rank Data Updated','Player rank data updated','green')
 	
 	
 
@@ -533,6 +548,7 @@ $('.playerName').change(function(){
 	if (playerName == "") return;
 	if (!(playerName in playerList)){
 		console.error(`Player ${playerName} not found in database`)
+		popToast('Not Found',`Player ${playerName} not found in database`,'red')
 		return
 	}
 
@@ -656,10 +672,13 @@ $('#orderedRaceResults').change(function(){
 })
 
 // Websocket client to get auto-pasted race data
+var connectedToRaceDataApp = false
 function wsConnect() {
 	var ws = new WebSocket(`ws://localhost:${config.databroker.websocketPort}`);
 	ws.onopen = function() {
 		// Maybe show connection status message in future
+		popToast('Companion App Connected','Connected to Race data app','green')
+		connectedToRaceDataApp = true
 	};
 
 	// Handle incoming data
@@ -672,6 +691,7 @@ function wsConnect() {
 		}
 		catch(e){
 			console.error(`Invalid JSON payload from Websocket: ${msg.data}`)
+			popToast('Data Companion Error',`Invalid JSON payload from Websocket: ${msg.data}`,'red')
 			return
 		}
 
@@ -679,11 +699,18 @@ function wsConnect() {
 
 		// Send data acknowledgement back
 		ws.send(JSON.stringify({messageType: 'dataACK'}))
+		
+		popToast('Race Data Recieved','Got race data from companion app','green')
 
 	};
 
 	ws.onclose = function(e) {
 		console.log('Socket is closed. Reconnect will be attempted in 1 second.', e.reason);
+		// Only pop toast on initial disconnection
+		if(connectedToRaceDataApp){
+			popToast('Companion App Disconnected','Lost connection to Race data app','red')
+		}
+		connectedToRaceDataApp = false
 		setTimeout(function() {
 			wsConnect();
 		}, 1000);
@@ -691,6 +718,7 @@ function wsConnect() {
 
 	ws.onerror = function(err) {
 		console.error('Socket encountered error: ', err.message, 'Closing socket');
+		//popToast('Data Companion Error',`Socket encountered error: ${err.message} Closing socket`,'red')
 		ws.close();
 	};
 }
@@ -749,6 +777,7 @@ async function insertRace(raceNumber, locationIDRef=false, raceResultsRaw=false,
 			{typecast: true}
 		).catch(error => {
 			console.error(error);
+			popToast('Airtable Error',error,'red')
 		});
 			
 		// Save the record ID we just created
@@ -758,6 +787,7 @@ async function insertRace(raceNumber, locationIDRef=false, raceResultsRaw=false,
 		raceList[recordID]=fields
 
 		console.log(`Race Created. New Race Record ID: ${recordID}`);
+		popToast('Race Created',`New Race Record ID: ${recordID}`,'green')
 	}
 	else{
 		// Existing record, update existing instead of creating new
@@ -771,9 +801,11 @@ async function insertRace(raceNumber, locationIDRef=false, raceResultsRaw=false,
 			]
 		).catch(error => {
 			console.error(error);
+			popToast('Airtable Error',error,'red')
 		});
 
 		console.log(`Race ID ${recordID} updated`)
+		popToast('Race Updated',`Race ID ${recordID} updated`,'green')
 
 	}
 }
@@ -825,6 +857,7 @@ $('#createRaceBtn').click(async function createRaceBtnClick(){
 	}
 	else{
 		console.error("Can't create race. Invalid Race Number")
+		popToast('Invalid Race',"Can't create race. Invalid Race Number",'red')
 	}
 })
 
@@ -841,6 +874,39 @@ $('#addBonusCancelBtn').click(function addBonusCancelBtnClick(){
 	$('#bonusType').val('')
 	$('#bonusPlayer').val('')
 })
+
+//* Toasts *\\
+// Enable Toasts
+$('.toast').toast()
+
+// Call this to pop up a toast message
+function popToast(title,bodyText,color) {
+	var colorMap={}
+	colorMap['green'] = '#28a745'
+	colorMap['red']= '#dc3545'
+	
+	var toastDiv = $(`<div class="toast toast-autodispose" role="alert" aria-live="assertive" aria-atomic="true" data-delay='1000'>`)
+	var toastHeader = $(`<div class="toast-header">`)
+	toastHeader.append(`<svg class="bd-placeholder-img rounded mr-2" width="20" height="20" xmlns="http://www.w3.org/2000/svg" role="img" aria-label=" :  " preserveAspectRatio="xMidYMid slice" focusable="false"><rect width="100%" height="100%" fill="${colorMap[color]}">`)
+	toastHeader.append(`<strong class="mr-auto">${title}</strong>`)
+	//toastHeader.append(`<small>11 mins ago</small>`)
+	toastHeader.append(`<button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close"><span aria-hidden="true">&times;</span>`)
+	var toastBody = $(`<div class="toast-body">`)
+	
+	toastBody.append(bodyText)
+	
+	toastDiv.append(toastHeader)
+	toastDiv.append(toastBody)
+
+	// Auto-delete toasts from DOM after they disappear
+	toastDiv.on('hidden.bs.toast', function () {
+		$(this).remove()
+	})
+
+	$('#toastLocation').append(toastDiv)
+	toastDiv.toast('show')
+}
+
 
 // Setup data refresh from Airtable every 15 seconds with an immediate refresh to start
 loadPlayers()
