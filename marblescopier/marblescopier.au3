@@ -20,8 +20,8 @@ $windowTitle = "[TITLE:Marbles On Stream; CLASS:UnrealWindow]"
 ; Close button X-coord: 0.5 * horizontal resolution
 ; Close button Y-coord: 0.6 * vertical resolution
 
-
-
+; Get the current window so we can return focus to it
+$previousWindow = WinGetHandle("[active]")
 
 ; Set marbles to be active window
 WinActivate($windowTitle)
@@ -53,6 +53,7 @@ If WinActive($windowTitle) Then
 	; Need to use really janky keystrokes to paste into CLI window
 	send('!{SPACE}ep{ENTER}{ENTER}{ENTER}')
 
+	WinActivate($previousWindow)
 	; Write data to disk as a backup in case of issue
 	; Get current timestamp
 	$dateTime = _NowCalc()
