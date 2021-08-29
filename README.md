@@ -6,7 +6,7 @@ When run, MarblesCopier will:
  1. Find an open Marbles On Stream window
  2. Click the button to copy results
  3. Immediately click the close button on the annoying popup
- 4. Paste the results into an already-open notepad window
+ 4. Paste the results into the companion `marblescopier-listener` app that feeds the data into the data entry tool.
 
 To use, run the pre-compiled *.exe under releases (compiled with Aut2Exe) or compile using the below instructions
 
