@@ -22,6 +22,8 @@ $windowTitle = "[TITLE:Marbles On Stream; CLASS:UnrealWindow]"
 
 ; Get the current window so we can return focus to it
 $previousWindow = WinGetHandle("[active]")
+; Get the current mouse position so we can put the cursor back where it was
+$originalMousePos = MouseGetPos()
 
 ; Set marbles to be active window
 WinActivate($windowTitle)
@@ -36,7 +38,7 @@ $windowResolution=WinGetClientSize($windowTitle)
 
 If WinActive($windowTitle) Then
 	$copyX = int($windowResolution[0] * 0.2)
-	$copyY = int($windowResolution[1] * 0.12)
+	$copyY = int($windowResolution[1] * 0.1)
 
 	$closeX = int($windowResolution[0] * 0.5)
 	$closeY = int($windowResolution[1] * 0.6)
@@ -45,6 +47,8 @@ If WinActive($windowTitle) Then
 	MouseClick("left",$copyX,$copyY,1,0)
 	; Click close button on popup
 	MouseClick("left",$closeX,$closeY,1,0)
+	; Add spacebar press to try and avoid GUI getting stuck and not recognizing our click(s)
+	send('{SPACE}')
 
 	;Paste into special node.js listener which will communicate to the browser
 	WinActivate("Marbles Race Result Paste Listener")
@@ -53,7 +57,11 @@ If WinActive($windowTitle) Then
 	; Need to use really janky keystrokes to paste into CLI window
 	send('!{SPACE}ep{ENTER}{ENTER}{ENTER}')
 
+	; Re-activate old window
 	WinActivate($previousWindow)
+	; Put mouse cursor back where it was
+	MouseMove($originalMousePos[0],$originalMousePos[1],0)
+
 	; Write data to disk as a backup in case of issue
 	; Get current timestamp
 	$dateTime = _NowCalc()
