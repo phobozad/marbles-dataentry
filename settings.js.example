@@ -9,7 +9,7 @@ config.airtable.baseID = "applk132m1nd7ak"
 config.airtable.playerTableName = "Players"
 // This is the field name (column) in the table that contains the user/player name
 config.airtable.playerFieldName = "Name"
-config.airtable.playerPointsFieldName = "TO - Total Points Current"
+config.airtable.playerPointsFieldName = "TO - Season Points"
 config.airtable.playerLeaderboardViewName = "Leaderboard-v2"
 // Race result table name
 config.airtable.raceTableName = "Races"
@@ -19,12 +19,16 @@ config.airtable.raceFieldNamePlace[2] = "2nd Place"
 config.airtable.raceFieldNamePlace[3] = "3rd Place"
 config.airtable.raceFieldNamePlace[4] = "4th Place"
 config.airtable.raceFieldNamePlace[5] = "5th Place"
+config.airtable.raceFieldNamePlace[6] = "6th Place"
+config.airtable.raceFieldNamePlace[7] = "7th Place"
+config.airtable.raceFieldNamePlace[8] = "8th Place"
+config.airtable.raceFieldNamePlace[9] = "9th Place"
+config.airtable.raceFieldNamePlace[10] = "10th Place"
 config.airtable.raceFieldNameLastPlace = "Last Place"
 config.airtable.raceSeasonFieldName = "Season"
 config.airtable.raceWeekFieldName = "Week"
 config.airtable.raceNumberFieldName = "Race"
 config.airtable.raceLocationFieldName = "Location"
-config.airtable.raceResultsFieldName = "Results"
 config.airtable.racePrimaryKeyFieldName = "RaceID"
 config.airtable.raceResultsRawFieldName = "Race Order (from MOS)"
 config.airtable.raceFinishersFieldName = "Finishers"
@@ -39,18 +43,27 @@ config.airtable.bonusTableName = "Bonuses"
 config.airtable.bonusRaceFieldName = "Race"
 config.airtable.bonusPlayersFieldName = "Players"
 config.airtable.bonusTypeFieldName = "Type"
-
+// Stat table (dogfights/stucks)
+config.airtable.statTableName = "Dogfights/Stucks"
+config.airtable.statRaceFieldName = "Race"
+config.airtable.statDogfightFieldName = "Dogfights"
+config.airtable.statStuckFieldName = "Stucks"
 
 // Race result point calculations
 config.lfg={}
 config.lfg.season="ST"
 config.lfg.week="WT"
 config.lfg.pointsForPlace={}
-config.lfg.pointsForPlace[1] = 3
-config.lfg.pointsForPlace[2] = 2
-config.lfg.pointsForPlace[3] = 2
-config.lfg.pointsForPlace[4] = 1
-config.lfg.pointsForPlace[5] = 1
+config.lfg.pointsForPlace[1] = 13
+config.lfg.pointsForPlace[2] = 11
+config.lfg.pointsForPlace[3] = 10
+config.lfg.pointsForPlace[4] = 8
+config.lfg.pointsForPlace[5] = 7
+config.lfg.pointsForPlace[6] = 6
+config.lfg.pointsForPlace[7] = 5
+config.lfg.pointsForPlace[8] = 4
+config.lfg.pointsForPlace[9] = 2
+config.lfg.pointsForPlace[10] = 1
 
 config.databroker={}
 config.databroker.websocketPort = 8069
