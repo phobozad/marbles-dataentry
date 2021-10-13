@@ -561,6 +561,15 @@ function calcBigSixFinishesTonight(playerName){
 	return resultCount;
 }
 
+function calcTopTenFinishesTonight(playerName){
+	var resultCount = 0
+
+	// Get top 5 placements
+	resultCount += calcTopFinishesTonight(playerName,10)
+
+	return resultCount;
+}
+
 // Since we need to wait for some data processing, this function gets called later to add player rank info to the announcer output
 function addPlayerRank(){
 	// Run though rank for Top 3 players
@@ -629,25 +638,30 @@ $('.playerName').change(function(){
 	}
 	else if (this.id == 'player2'){
 		// Count all top-5 placements + last place placements
-		var secondPlaceBigSixPlacements = calcBigSixFinishesTonight(playerName) + 1
+		//var secondPlaceBigSixPlacements = calcBigSixFinishesTonight(playerName) + 1
+		// Replaced "Big 6" with Top 10
+		var secondPlaceTopPlacements = calcTopTenFinishesTonight(playerName) + 1
+
 		var secondPlacePoints = playerList[playerName][config.airtable.playerPointsFieldName] + config.lfg.pointsForPlace[2]
 
 		copyText.append(`<strong><mark>${playerName}</mark></strong>. `)
-		copyText.append(`This is their <b>${secondPlaceBigSixPlacements}${ordinal(secondPlaceBigSixPlacements)}</b> time placing in the big six `)
+		copyText.append(`This is their <b>${secondPlaceTopPlacements}${ordinal(secondPlaceTopPlacements)}</b> time placing in the top ten `)
 		copyText.append(`and they've got <b>${secondPlacePoints}</b> points now. `)
 
 	}
 	else if (this.id == 'player3'){
 		// Count all top-5 placements + last place placements
-		var thirdPlaceBigSixPlacements = calcBigSixFinishesTonight(playerName) + 1
+		//var thirdPlaceBigSixPlacements = calcBigSixFinishesTonight(playerName) + 1
+		// Replaced "Big 6" with Top 10
+		thirdPlaceTopPlacements = calcTopTenFinishesTonight(playerName) + 1
 		var thirdPlacePoints = playerList[playerName][config.airtable.playerPointsFieldName] + config.lfg.pointsForPlace[3]
 
 		copyText.append(`<strong><mark>${playerName}</mark></strong>. `)
-		if(thirdPlaceBigSixPlacements==1){
-			copyText.append(`This is their <b>${thirdPlaceBigSixPlacements}${ordinal(thirdPlaceBigSixPlacements)}</b> time making the big six `)
+		if(thirdPlaceTopPlacements==1){
+			copyText.append(`This is their <b>${thirdPlaceTopPlacements}${ordinal(thirdPlaceTopPlacements)}</b> time making the top ten `)
 		}
 		else{
-			copyText.append(`They've made the big six <b>${thirdPlaceBigSixPlacements}</b> times now `)
+			copyText.append(`They've made the top ten <b>${thirdPlaceTopPlacements}</b> times now `)
 		}
 		copyText.append(`and are up to <b>${thirdPlacePoints}</b> points. `)
 
