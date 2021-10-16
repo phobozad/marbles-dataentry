@@ -62,7 +62,12 @@
 				</div>
 				<div class="col-auto text-right"><button id='createRaceBtn' type='button' class='btn btn-small btn-success'>Create Race</button></div>
 			</div>
-
+			<div class="form-group form-row">
+				<div class="col-auto"></div>
+				<div class="col-auto"><button id='add1Dog' type='button' class='btn btn-small btn-warning' onClick="saveRaceStat('dogfight', 1)">+1 <img src='https://static-cdn.jtvnw.net/emoticons/v2/81103/default/light/3.0' style='max-height: 1.4rem'/></button></div>
+				<div class="col-auto"><button id='add1Stuck' type='button' class='btn btn-small btn-warning' onClick="saveRaceStat('stuck', 1)">+1 Stuck</button></div>
+				<div class="col-auto"></div>
+			</div>
 			<div class="form-row">
 				<div class="col"><h1>Top 3</h1></div>
 				<div class="col text-right"><button id='refreshRanks' type='button' class='btn btn-small btn-info'>Refresh Ranks</button></div>
@@ -433,6 +438,29 @@ async function insertBonusRecord(bonusID,playerID,raceID){
 
 }
 
+
+// Insert stat into airtable (dogfight/stuck)
+async function insertStatRecord(statFieldName,raceID,statValue){
+	var fields = {}
+	fields[config.airtable.statRaceFieldName] = [raceID]
+	fields[statFieldName] = statValue
+
+	var newRecord = await airtableDB(config.airtable.statTableName).create(
+			[
+				{
+					'fields': fields
+				}
+			],
+		).catch(error => {
+			console.error(error);
+			popToast('Airtable Error',`${error.error}: ${error.message}`,'red')
+			return
+		});
+	
+	popToast('Added Stat',`Stat ID ${newRecord[0].getId()} added`,'green')
+
+}
+
 $('#addBonusModal').on('show.bs.modal', function (event) {
 	var button = $(event.relatedTarget) // Button that triggered the modal
 	var bonus = button.data('bonus') // Extract info from data-* attributes
@@ -464,6 +492,27 @@ function saveBonus(){
 	}
 	else{
 		insertBonusRecord(bonusID,playerID,raceID)
+	}
+}
+
+function saveRaceStat(statType, statValue){
+	var raceID = checkRaceExists($('#raceInput').val())
+	if (statType == "dogfight"){
+		var statFieldName = config.airtable.statDogfightFieldName
+	}
+	else if (statType == "stuck"){
+		var statFieldName = config.airtable.statStuckFieldName
+	}
+	
+	console.log(`Stat: ${statFieldName}  Value: ${statValue}  Race: ${raceID}`)
+
+	// Make sure we have a Race ID to reference in the record
+	if(raceID===false){
+		console.error("Race Record not found.  Create race first.")
+		popToast('Race Not Created Yet','Race Record not found.  Create race first.','red')
+	}
+	else{
+		insertStatRecord(statFieldName,raceID,statValue)
 	}
 }
 
