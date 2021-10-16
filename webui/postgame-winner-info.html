@@ -62,11 +62,30 @@
 				</div>
 				<div class="col-auto text-right"><button id='createRaceBtn' type='button' class='btn btn-small btn-success'>Create Race</button></div>
 			</div>
-			<div class="form-group form-row">
-				<div class="col-auto"></div>
-				<div class="col-auto"><button id='add1Dog' type='button' class='btn btn-small btn-warning' onClick="saveRaceStat('dogfight', 1)">+1 <img src='https://static-cdn.jtvnw.net/emoticons/v2/81103/default/light/3.0' style='max-height: 1.4rem'/></button></div>
-				<div class="col-auto"><button id='add1Stuck' type='button' class='btn btn-small btn-warning' onClick="saveRaceStat('stuck', 1)">+1 Stuck</button></div>
-				<div class="col-auto"></div>
+			<div class="form-group form-row justify-content-center">
+
+				<div class="col-auto">
+					<button id='sub1Dog' type='button' class='btn btn-small btn-outline-danger' onClick="saveRaceStat('dogfight', -1)">-1 <img src='https://static-cdn.jtvnw.net/emoticons/v2/81103/default/light/3.0' style='max-height: 1.4rem'/></button>
+				</div>
+				<div class="col-auto">
+					<input type='text' id='dogCount' class='form-control text-center' readonly style='width: 2.5em'>
+				</div>
+				<div class="col-auto">
+					<button id='add1Dog' type='button' class='btn btn-small btn-outline-success' onClick="saveRaceStat('dogfight', 1)">+1 <img src='https://static-cdn.jtvnw.net/emoticons/v2/81103/default/light/3.0' style='max-height: 1.4rem'/></button>
+				</div>
+
+
+				<div class="col-auto">
+					<button id='sub1Stuck' type='button' class='btn btn-small btn-outline-danger' onClick="saveRaceStat('stuck', -1)">-1 Stuck</button>
+				</div>
+				<div class="col-auto">
+					<input type='text' id='stuckCount' class='form-control text-center' readonly style='width: 2.5em'>
+				</div>
+				<div class="col-auto">
+					<button id='add1Stuck' type='button' class='btn btn-small btn-outline-success' onClick="saveRaceStat('stuck', 1)">+1 Stuck</button>
+				</div>
+
+				
 			</div>
 			<div class="form-row">
 				<div class="col"><h1>Top 3</h1></div>
@@ -457,8 +476,50 @@ async function insertStatRecord(statFieldName,raceID,statValue){
 			return
 		});
 	
+	updateStatDisplay(statFieldName,statValue)
 	popToast('Added Stat',`Stat ID ${newRecord[0].getId()} added`,'green')
 
+}
+
+
+// Update stat in airtable (dogfight/stuck)
+async function updateStatRecord(statFieldName,recordID,statValue){
+	var fields = {}
+	fields[statFieldName] = statValue
+
+	console.log(`Updating: ${statValue}`)
+	var newRecord = await airtableDB(config.airtable.statTableName).update(
+			[
+				{
+					'id': recordID,
+					'fields': fields
+				}
+			],
+		).catch(error => {
+			console.error(error);
+			popToast('Airtable Error',`${error.error}: ${error.message}`,'red')
+			return
+		});
+	
+	
+	updateStatDisplay(statFieldName,statValue)
+	popToast('Updated Stat',`Stat ID ${recordID} updated`,'green')
+	console.log(`Updated Stat ID: ${recordID}`)
+
+}
+
+// Call this to update the UI's stat display (dogfights/stucks)
+function updateStatDisplay(statFieldName,statValue){
+	console.log(`Update display: ${statFieldName}: ${statValue}`)
+	// Dogfight
+	if (statFieldName == config.airtable.statDogfightFieldName){
+		$('#dogCount').val(statValue).change()
+	}
+
+	// Stuck
+	if (statFieldName == config.airtable.statStuckFieldName){
+		$('#stuckCount').val(statValue).change()
+	}
 }
 
 $('#addBonusModal').on('show.bs.modal', function (event) {
@@ -495,8 +556,9 @@ function saveBonus(){
 	}
 }
 
-function saveRaceStat(statType, statValue){
+async function saveRaceStat(statType, statValue){
 	var raceID = checkRaceExists($('#raceInput').val())
+
 	if (statType == "dogfight"){
 		var statFieldName = config.airtable.statDogfightFieldName
 	}
@@ -504,7 +566,7 @@ function saveRaceStat(statType, statValue){
 		var statFieldName = config.airtable.statStuckFieldName
 	}
 	
-	console.log(`Stat: ${statFieldName}  Value: ${statValue}  Race: ${raceID}`)
+	console.log(`Stat: ${statFieldName}  Value+/-: ${statValue}  Race: ${raceID}`)
 
 	// Make sure we have a Race ID to reference in the record
 	if(raceID===false){
@@ -512,8 +574,88 @@ function saveRaceStat(statType, statValue){
 		popToast('Race Not Created Yet','Race Record not found.  Create race first.','red')
 	}
 	else{
-		insertStatRecord(statFieldName,raceID,statValue)
+		// We have a Race ID.  Check if we have an existing entry in the stats table for this race
+		var statData={}
+		statData[statFieldName] = statValue
+
+		// For filtering by Race, we need to filter based on the RaceID value and not record ID b/c Airtables is dumb that way
+		// But as a workaround we put in a "record_id" formula field in races and include that as a linked field in the stats table
+		// Pull data from the stats table for this race
+		var records = await airtableDB(config.airtable.statTableName).select({
+			filterByFormula: `{${config.airtable.statRaceRecordLookupFieldName}}="${raceID}"`
+			}).all().catch(error => {
+				console.error(error)
+				popToast('Airtable Error',`${error.error}: ${error.message}`,'red')
+		})
+
+
+
+		// If we have an existing entry, update it
+		if(records.length > 0){
+			// There may be multiple rows - iterate over all of them
+			var recordID = ""
+			records.forEach(function(record){
+				// Calulcate total dogfights/stucks already recorded for this race.  This should even work with multiple records for same race (it will SUM them)
+				// The total will be 1 higher than current since we already added our new dogfight/stuck above
+
+				// Need to ignore any non-numeric values (blank, NaN, etc)
+				if(Number.isInteger(record.get(statFieldName))){
+					statData[statFieldName] += record.get(statFieldName)
+				}
+
+				// Whatever our last row is, that is the one that will be updated so save the last record ID for this row
+				recordID=record.id
+				lastRowValue=record.get(statFieldName)
+				// Handle case where last row has the value undefined.  Treat as Zero value
+				if (!Number.isInteger(lastRowValue)){
+					lastRowValue=0
+				}
+			})
+
+
+			console.log("Updating existing dogfight/stuck record...")
+			console.log(`New Value: ${statFieldName} = ${statData[statFieldName]}`)
+			// If we have multiple records, we should only modify the value relative to the last record pulled - otherwise we will double-count
+			updateStatRecord(statFieldName,recordID,lastRowValue+statValue)
+		}
+		// If not, create it from scratch
+		else{
+			console.log("Creating new dogfight/stuck record...")
+			insertStatRecord(statFieldName,raceID,statValue)
+		}
+
 	}
+}
+
+
+
+async function loadStatCat() {
+	
+	var newbonusList = {}
+	// Pull data from the "Bonus-Categories" table for this week
+	var records = await airtableDB(config.airtable.bonusCategoryTableName).select({}).all().catch(error => {
+		console.error(error)
+		popToast('Airtable Error',`${error.error}: ${error.message}`,'red')
+	})
+
+	records.forEach(function(record){
+		// Pull the Airtable record ID for each bonus type
+		var bonusName = record.get(config.airtable.bonusCategoryNameFieldName)
+		// And add each bonus to the bonusList with the relevant attributes
+		newbonusList[bonusName] = {}
+		newbonusList[bonusName].recordID = record.getId()
+		
+		// Loop over all fields from Airtable, grab the value and shove it into the bonusList object
+		Object.keys(record.fields).forEach(fieldName => {
+			newbonusList[bonusName][fieldName] = record.fields[fieldName]
+		});
+	})
+
+	// Update bonus list with the new data
+	bonusList = newbonusList
+
+	// Refresh auto-complete entries
+	updateBonusAutocomplete()
 }
 
 // Setup action when refresh button is clicked to manually pull fresh data from airtable
@@ -755,6 +897,8 @@ function clearAllFields(){
 	$('#lastPlaceInput').val("").change()
 	$('#orderedRaceResults').val("").change()
 	$('#raceLocation').val("").change()
+	$('#dogCount').val("").change()
+	$('#stuckCount').val("").change()
 	
 }
 
