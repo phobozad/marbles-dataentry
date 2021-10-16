@@ -46,6 +46,7 @@ config.airtable.bonusTypeFieldName = "Type"
 // Stat table (dogfights/stucks)
 config.airtable.statTableName = "Dogfights/Stucks"
 config.airtable.statRaceFieldName = "Race"
+config.airtable.statRaceRecordLookupFieldName = "RaceRecordID"
 config.airtable.statDogfightFieldName = "Dogfights"
 config.airtable.statStuckFieldName = "Stucks"
 
