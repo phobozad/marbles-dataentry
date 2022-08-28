@@ -10,6 +10,14 @@ When run, MarblesCopier will:
 
 To use, run the pre-compiled *.exe under releases (compiled with Aut2Exe) or compile using the below instructions
 
+To click the copy button when Marbles On Stream shows the "Season Disabled" banner and the button has moved, pass the `/offseason` flag to the app:
+
+`marblescopier-x.x.x.exe /offseason`
+
+To specify arbitrary coordinates to click (in case the buttons move after a MoS update), pass the `/coords <copy button X> <copy button Y> <close button X> <close button Y>` flag to the app:
+
+`marblescopier-x.x.x.exe /coords 296 108 960 655`
+
 ### Compiling
 
 Run the `marblescopier\compile-app.ps1` file to automatically download the Aut2Exe app and compile the script into a self-contained `*.exe`.

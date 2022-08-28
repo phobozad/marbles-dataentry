@@ -1,4 +1,4 @@
-$copierAppVersion="0.1.3"
+$copierAppVersion="0.2.0"
 
 Remove-Item -Path build -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -Name build -ItemType Directory | Out-Null
