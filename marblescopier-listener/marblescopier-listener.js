@@ -46,7 +46,12 @@ cli.on('line', (input) => {
 		// Make sure we got data and not just some extraneous presses of the enter key
 		if(dataBuffer.length>0){
 			console.log(chalk.green('[ End of race data detected, processing ]'))
-			currentResults = dataBuffer.join('\n')
+
+			// Update for Marbles Nov 2022 data format change
+			parsedDataBuffer = []
+			dataBuffer.forEach(line => parsedDataBuffer.push(line.split("\t")[0]))
+
+			currentResults = parsedDataBuffer.join('\n')
 
 			// Clear the buffer
 			dataBuffer = []
