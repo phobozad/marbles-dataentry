@@ -6,6 +6,13 @@
 
 		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
 
+		<script>
+			if(window.location.href.startsWith("file://")){
+				document.write("<h1>Please access via local HTTP webserver rather than loading HTML file directly otherwise the app doesn't work<br><br>")
+				document.write("<center><a href='http://127.0.0.1:8070'>http://127.0.0.1:8070</a></center></h1>")
+				window.stop()
+			}
+		</script>
 		<script src="airtable.browser.js"></script>
 		<script src="../settings.js"></script>
 		<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
