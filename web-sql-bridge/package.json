@@ -1,0 +1,24 @@
+{
+	"name": "marbles-web-sql-bridge",
+	"version": "0.0.1",
+	"license": "Zlib",
+	"main": "web-sql-bridge.js",
+	"bin": {
+		"main": "web-sql-bridge.js"
+	},
+	"dependencies": {
+		"chalk": "^4.1.0",
+		"pkg": "^4.4.9",
+		"websocket": "^1.0.33",
+		"express": "^4.17",
+		"mysql": "^2.18"
+	},
+	"engines": {
+		"node": ">=0.14.0"
+	},
+	"scripts": {
+		"buildwin": "rmdir /S /Q build & pkg . -t node14-win-x64 --out-path build",
+		"prepackagewin": "rename \"build\\web-sql-bridge.exe\" \"web-sql-bridge-%npm_package_version%.exe\"",
+		"packagewin": "powershell Compress-Archive 'build\\*' 'build\\web-sql-bridge-%npm_package_version%-win64.zip'"
+	}
+}

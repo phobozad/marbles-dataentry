@@ -1,8 +1,21 @@
 // Config file (javascript format)
 config={}
 config.airtable={}
+config.mysqldatabase={}
 
 // Fill in settings below
+config.mysqldatabase.enabled = true
+config.mysqldatabase.host = "marbles123db.us-east-1.rds.amazonaws.com"
+config.mysqldatabase.username = "marblesapp"
+config.mysqldatabase.password = "password123"
+config.mysqldatabase.dbname = "marbles"
+config.mysqldatabase.sslEncryption = true
+// sslOptions is passed direclty to mysql library.
+// If using non-AWS-RDS server, need to provide SSL certificate/tls.createSecureContext paramters here
+// For Amazon AWS RDS service, just put "Amazon RDS" to use the built-in SSL profile
+config.mysqldatabase.sslOptions = "Amazon RDS"
+
+config.airtable.enabled = false
 config.airtable.apiKey = "keyDKkn3md78aQ"
 config.airtable.baseID = "applk132m1nd7ak"
 // This is the table that contains player stats you want to pull from (e.g. win count)
@@ -68,3 +81,5 @@ config.lfg.pointsForPlace[10] = 1
 
 config.databroker={}
 config.databroker.websocketPort = 8069
+
+config.mysqldatabase.apiPort = 8070
