@@ -264,32 +264,6 @@ var loadPlayers = function() {
 	});
 };
 
-leaderboardArray = []
-// loadLeaderboard pulls the live leaderboard rankings
-function loadLeaderboard() {
-	leaderboardArray = []
-	return new Promise ((resolve,reject) => {
-		// Pull data from the "Players" table
-		airtableDB(config.airtable.playerTableName).select({
-			view: config.airtable.playerLeaderboardViewName
-		}).eachPage(function page(records, fetchNextPage) {
-			records.forEach(function(record) {
-				// Players simply inserted into array in order.  Rank = array index value + 1
-				leaderboardArray.push(record.get(config.airtable.playerFieldName))
-			});
-			// If there are more than 100 results, AirTables paginates the output into multiple chunks
-			fetchNextPage();
-		}, function done(error) {
-			if(error){
-				console.log(error);
-				popToast('Airtable Error',`${error.error}: ${error.message}`,'red')
-				reject();
-			}
-
-			resolve();
-		});
-	});
-};
 
 // playerList holds cache of player names pulled from Airtable
 var raceList = {}
@@ -585,23 +559,6 @@ function ordinal(number) {
 }
 
 
-function calcNthPlaceFinishesTonight(playerName, nthPlace) {
-	// Use the appropriate field name based on which place we're looking at (1st, 2nd, 3rd, etc)
-	var fieldName = config.airtable.raceFieldNamePlace[nthPlace]
-
-	var resultCount = 0
-
-	// Loop over all races and check for the playerID in the results
-	Object.keys(raceList).forEach(race => {
-		// If the player ID matches the race result field, increment the counter
-		if(raceList[race][fieldName] == playerName){
-			resultCount++;
-		}
-
-	});
-
-	return resultCount;
-}
 
 // This function will count how many times a player played in the top N places (e.g. 1st through 5th)
 function calcTopFinishesTonight(playerName, nthPlace) {
@@ -614,19 +571,6 @@ function calcTopFinishesTonight(playerName, nthPlace) {
 	return resultCount;
 }
 
-function getPlayerRecordID(playerName){
-	// Map player name to record ID, since this is what is seen in Race table data. "false" if not found
-	var playerID = false
-	try{
-		var playerID = playerList[playerName].recordID
-	}
-	catch(e){
-		console.error(`Player ${playerName} not found in database`)
-		popToast('Not Found',`Player ${playerName} not found in database`,'red')
-	}
-
-	return playerID
-}
 
 function calcLastPlaceFinishesTonight(playerName){
 	var resultCount = 0
@@ -663,38 +607,9 @@ function calcTopTenFinishesTonight(playerName){
 	return resultCount;
 }
 
-// Since we need to wait for some data processing, this function gets called later to add player rank info to the announcer output
-function addPlayerRank(){
-	// Run though rank for Top 3 players
-	for(var i=1; i<=3; i++){
-		var playerName = $(`#player${i}`).val()
-		// Lookup player in the leaderboard
-		var index = leaderboardArray.findIndex( (player) => player == playerName )
 
-		// Only update if we found the player.  If the player wasn't found in the leaderboard for some reason, we will get a -1
-		if (index >= 0){
-			// Index is zero-based so need to add 1 to get actual rank number
-			var rank = index + 1
-			var copyText = ''
 
-			copyText += ` They're now ranked <b>${rank}${ordinal(rank)}</b>.`
-			// Append text right after current blurb
-			$(`#announcerCopyplayer${i}Rank`).empty();
-			$(`#announcerCopyplayer${i}Rank`).append(copyText);
-
-			// Animate the text to indicate it was updated
-			$(`#announcerCopyplayer${i}Rank`)
-				.fadeTo('slow',0.25)
-				.fadeTo('fast',1.0);
-		}
-	}
-	popToast('Rank Data Updated','Player rank data updated','green')
-	
-	
-
-}
-
-$('.playerName').change(function(){
+$('.playerName').change(async function(){
 	// Setup clearer mapping of player name based on which field was changed
 	var playerName = this.value
 	// fieldLabel will have the text of whatever label is attached to this field (e.g. "1st Place")
@@ -702,7 +617,7 @@ $('.playerName').change(function(){
 
 	// Skip blank data since we'll error out anyway
 	if (playerName == "") return;
-	if (!(playerName in playerList)){
+	if (!(await getPlayerRecordID(playerName))){
 		console.error(`Player ${playerName} not found in database`)
 		popToast('Not Found',`Player ${playerName} not found in database`,'red')
 		return
@@ -998,10 +913,13 @@ async function saveRaceRaw(){
 	
 	// After the data insert is complete, pull new player info and update rank.
 	// Configurable delay to let Airtable hopefully finish automations first
-	setTimeout(async function delayedLeaderUpdate(){
+	/*setTimeout(async function delayedLeaderUpdate(){
 		await loadLeaderboard()
 		await addPlayerRank()
-	}, config.airtable.rankUpdateDelayMilliseconds);
+	}, config.airtable.rankUpdateDelayMilliseconds);*/
+
+	await addPlayerRank()
+
 	
 }
 
@@ -1026,8 +944,6 @@ $('#createRaceBtn').click(async function createRaceBtnClick(){
 
 // Action for "Refresh Ranks" button
 $('#refreshRanks').click(async function refreshRanksClick(){
-	// Pull leaderboard info then update the player rank field
-	await loadLeaderboard()
 	await addPlayerRank()
 })
 

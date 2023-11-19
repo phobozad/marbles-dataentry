@@ -1,6 +1,7 @@
 // Chalk for colored text output
 const chalk = require('chalk');
 const path = require('path');
+const util = require('util');
 
 // https://scotch.io/tutorials/build-a-restful-api-using-node-and-express-4
 // Packages for HTTP API (Express)
@@ -77,8 +78,9 @@ if(mysqlEnabled()){
 	});
 
 	
-	function mysqlQueryErrorLogger(err){
-		console.error(chalk.red(`Error on MySQL database: ${err.code} ${err.sqlMessage}`));
+	function mysqlQueryErrorLogger(error){
+		console.error(chalk.red(`Error on MySQL database: ${error.code} ${error.sqlMessage}`));
+		return {'error': error.code, 'errorFull': `${error.code} (${error.errno}): ${error.sqlMessage}`, 'errorDescription': error.sqlMessage, 'sqlErrorNum': error.errno}
 	}
 
 
@@ -134,6 +136,7 @@ router.get("/", function(req, res) {
 
 // Maps Endpoint
 
+// Map List Endpoint
 router.route("/maps")
 	.get(function(req, res) {
 
@@ -142,8 +145,9 @@ router.route("/maps")
 			
 			var sqlQuery = dbPool.query(sql, function (error, results, fields) {
 				if (error){
-					mysqlQueryErrorLogger(error);
-					res.status(500).json({'error': error.code, 'errorFull': `${error.code} (${error.errno}): ${error.sqlMessage}`, 'errorDescription': error.sqlMessage, 'sqlErrorNum': error.errno})
+					errorOutput = mysqlQueryErrorLogger(error);
+					res.status(500).json(errorOutput)
+					return
 				}
 				
 				res.json(results);
@@ -152,14 +156,215 @@ router.route("/maps")
 	});
 
 
+// Player Rank
+router.route("/player/:playerID/rank")
+	.get(function(req, res) {
+		var sql = "SELECT PlayerID, displayName AS 'PlayerName', Place AS 'Rank' FROM placements WHERE PlayerID = ?";
+		var inserts = [req.params.playerID];
+		sql = mysql.format(sql, inserts);
+
+		var sqlQuery = dbPool.query(sql, function (error, results, fields) {
+			if (error){
+				errorOutput = mysqlQueryErrorLogger(error);
+				res.status(500).json(errorOutput)
+				return
+			}
+			
+			if (results.length > 0)
+			{
+				res.json(results[0]);
+			}
+			else{
+				errorText = "Player Not Found";
+				errorTextLong = `Player ${req.params.playerID} not found in current season.`;
+				res.status(404).json({'error': errorText, 'errorFull': errorTextLong, 'errorDescription': errorText})
+			}
+		  });
+	});
+
+router.route("/player/name/:playerName/rank")
+	.get(function(req, res) {
+		var sql = "SELECT PlayerID, displayName AS 'PlayerName', Place AS 'Rank' FROM placements WHERE displayName = ?";
+		var inserts = [req.params.playerName];
+		sql = mysql.format(sql, inserts);
+
+		var sqlQuery = dbPool.query(sql, function (error, results, fields) {
+			if (error){
+				errorOutput = mysqlQueryErrorLogger(error);
+				res.status(500).json(errorOutput)
+				return
+			}
+			
+			if (results.length > 0)
+			{
+				res.json(results[0]);
+			}
+			else{
+				errorText = "Player Not Found";
+				errorTextLong = `Player ${req.params.playerName} not found in current season.`;
+				res.status(404).json({'error': errorText, 'errorFull': errorTextLong, 'errorDescription': errorText})
+			}
+		  });
+	});
+
+
+// Player name to ID
+router.route("/player/name/:playerName")
+	.get(function(req, res) {
+
+		var playerID = playerNameToID(req.params.playerName);
+
+		if (playerID.result == 'error'){
+			var apiReturnCode = typeof playerID.output.apiReturnCode != 'undefined' ? playerID.output.apiReturnCode : 500
+			res.status(apiReturnCode).json(playerID.output);
+		}
+		else{
+			res.json(playerID.output);
+		}
+
+	});
+/*
+	.get(function(req, res) {
+		var sql = "SELECT displayName AS 'PlayerName', PlayerID FROM players WHERE displayName = ?";
+		var inserts = [req.params.playerName];
+		sql = mysql.format(sql, inserts);
+
+		var sqlQuery = dbPool.query(sql, function (error, results, fields) {
+			if (error){
+				mysqlQueryErrorLogger(error);
+				res.status(500).json({'error': error.code, 'errorFull': `${error.code} (${error.errno}): ${error.sqlMessage}`, 'errorDescription': error.sqlMessage, 'sqlErrorNum': error.errno})
+				return
+			}
+			
+			if (results.length > 0)
+			{
+				res.json(results[0]);
+			}
+			else{
+				errorText = "Player Not Found";
+				errorTextLong = `Player ${req.params.playerName} not found in current season.`;
+				res.status(404).json({'error': errorText, 'errorFull': errorTextLong, 'errorDescription': errorText})
+			}
+		  });
+	});
+*/
+
+
+
+// Player N-th place finishes
+router.route("/stats/currentweek/nthPlaceFinishes/:nthPlace/:playerID")
+	.get(function(req, res){
+		var finishes = nthPlaceFinishes(req.params.nthPlace,req.params.playerID,"currentweek")
+		console.log(finishes)
+
+		if (finishes.result == 'error'){
+			var apiReturnCode = typeof finishes.output.apiReturnCode != 'undefined' ? finishes.output.apiReturnCode : 500
+			res.status(apiReturnCode).json(finishes.output);
+		}
+		else{
+			res.json(finishes.output);
+		}
+
+		/*
+		var sql = "SELECT COUNT(resultID) AS 'Count' FROM racePlacements LEFT JOIN races ON (racePlacements.raceID = races.raceID) WHERE playerID=? AND placeNum=? AND weekID=CURRENTWEEK()";
+		var inserts = [req.params.playerID, req.params.nthPlace];
+		sql = mysql.format(sql, inserts);
+
+		var sqlQuery = dbPool.query(sql, function (error, results, fields) {
+			if (error){
+				errorOutput = mysqlQueryErrorLogger(error);
+				res.status(500).json(errorOutput)
+				return
+			}
+						
+			res.json(results[0]['Count']);
+
+		  });*/
+	});
+
+router.route("/stats/currentweek/nthPlaceFinishes/:nthPlace/name/:playerName")
+	.get(function(req, res){
+		var sql = "SELECT COUNT(resultID) AS 'Count' FROM racePlacements LEFT JOIN races ON (racePlacements.raceID = races.raceID) WHERE playerID=? AND placeNum=? AND weekID=CURRENTWEEK()";
+		var inserts = [req.params.playerID, req.params.nthPlace];
+		sql = mysql.format(sql, inserts);
+
+		var sqlQuery = dbPool.query(sql, function (error, results, fields) {
+			if (error){
+				errorOutput = mysqlQueryErrorLogger(error);
+				res.status(500).json(errorOutput)
+				return
+			}
+						
+			res.json(results[0]['Count']);
+
+		  });
+	});
+	
+
+
+
+function playerNameToID(playerName){
+	var sql = "SELECT displayName AS 'PlayerName', PlayerID FROM players WHERE displayName = ?";
+	var inserts = [playerName];
+	sql = mysql.format(sql, inserts);
+
+	var sqlQuery = dbPool.query(sql, function (error, results, fields) {
+		if (error){
+			errorOutput = mysqlQueryErrorLogger(error);
+			return {'result': 'error', 'output': errorOutput};
+		}
+		
+		if (results.length > 0)
+			return {'result': 'success', 'output': results[0]};
+		else
+			errorText = "Player Not Found";
+			errorTextLong = `Player ${req.params.playerName} not found in current season.`;
+			errorOutput = {'error': errorText, 'errorFull': errorTextLong, 'errorDescription': errorText, 'apiReturnCode': 404}
+			return {'result': 'error', 'output': errorOutput}
+	});
+
+};
+
+function nthPlaceFinishes(nthPlace, playerID, timeFrame){
+	var sql = "SELECT COUNT(resultID) AS 'Count' FROM racePlacements LEFT JOIN races ON (racePlacements.raceID = races.raceID) WHERE playerID=? AND placeNum=? AND weekID=CURRENTWEEK()";
+	var inserts = [playerID, nthPlace];
+	sql = mysql.format(sql, inserts);
+
+	/*
+	var test1 = await dbPool.query(sql, function (error, results, fields) {
+		if (error){
+			errorOutput = mysqlQueryErrorLogger(error);
+			//return {'result': 'error', 'output': errorOutput};
+		}
+		
+		return {'result': 'success', 'output': results[0]['Count']};
+		//next(null, results[0]['Count'])
+	});*/
+
+	const dbPoolQueryPromise = util.promisify(dbPool.query).bind(dbPool);
+
+	dbPoolQueryPromise(sql).then((results, fields) => {
+		console.log(results)
+		return {'result': 'success', 'output': results[0]['Count']};
+	})
+	.catch((error) => {
+		errorOutput = mysqlQueryErrorLogger(error);
+		return {'result': 'error', 'output': errorOutput};
+	});
+
+	//var result = await dbPoolQueryPromise(sql)
+	//console.log(results)
+
+};
+
 // REGISTER OUR ROUTES -------------
 // everything will be prefixed with /api
 app.use("/api", router);
 // We must serve the HTML page from web server due to CORS limitations (won't be able to call API)
-app.use("/",express.static(path.join(__dirname, "../webui"),{index: "postgame-winner-info.html"}))
+app.use("/",express.static(path.join(__dirname, "../webui"),{index: "postgame-winner-info.html"}));
 // Really hacky gross exposing settings.js remapped to the root to get legacy code working
 // probably do something more elegant down the line during refactor
-app.use("/settings.js",express.static(path.join(__dirname, "../settings.js")))
+app.use("/settings.js",express.static(path.join(__dirname, "../settings.js")));
 
 
 

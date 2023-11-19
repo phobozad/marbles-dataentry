@@ -8,65 +8,133 @@ var locationList = {}
 var loadLocations = function() {	
 	locationList = {}
 
-    // Pull data from MySQL database map table via SQL bridge API
-    jQuery.get(sqlApiBasePath + '/maps')
-        .done(function(apiDataRes){
-            apiDataRes.forEach(function(record){
-                var locationName = record['mapName']
+	// Pull data from MySQL database map table via SQL bridge API
+	jQuery.get(sqlApiBasePath + '/maps')
+		.done(function(apiDataRes){
+			apiDataRes.forEach(function(record){
+				var locationName = record['mapName']
 
-                // Add map locationList with the relevant attributes
-                locationList[locationName] = {}
-                locationList[locationName].recordID = record['mapID']
-            })
+				// Add map locationList with the relevant attributes
+				locationList[locationName] = {}
+				locationList[locationName].recordID = record['mapID']
+			})
 
-            // Refresh the auto-complete fields with the new data
-		    updateLocationAutocomplete()
-        })
-        .fail(function(jqXHR, textStatus){
-            console.log(jqXHR);
-            console.log(textStatus);
+			// Refresh the auto-complete fields with the new data
+			updateLocationAutocomplete()
+		})
+		.fail(function(jqXHR, textStatus){
+			console.log(jqXHR);
+			console.log(textStatus);
 			//popToast('Airtable Error',`${error.error}: ${error.message}`,'red')
-        });
-
-
-
-/*
-	// Pull data from the "Locations" table
-	airtableDB(config.airtable.locationTableName).select({
-		sort: [
-			// Sort by Name in ascending order
-			{field: config.airtable.locationNameField, direction: 'asc'}
-		]
-	}).eachPage(function page(records, fetchNextPage) {
-		records.forEach(function(record) {
-			// Pull the "Name" column for each location - this will be the lookup key used in the location list
-			var locationName = record.get(config.airtable.locationNameField)
-
-			// And add each player to the locationList with the relevant attributes
-			locationList[locationName] = {}
-			locationList[locationName].recordID = record.getId()
-
-			// Loop over all fields from Airtable, grab the value and shove it into the object
-			Object.keys(record.fields).forEach(fieldName => {
-				locationList[locationName][fieldName] = record.fields[fieldName]
-			});
-
 		});
-		// If there are more than 100 results, AirTables paginates the output into multiple chunks
-		fetchNextPage();
-	}, function done(error) {
-		if(error){
-			console.log(error);
-			popToast('Airtable Error',`${error.error}: ${error.message}`,'red')
-		}
 
-		// Refresh the auto-complete fields with the new data
-		updateLocationAutocomplete()
-	});*/
 };
 
 
+// Since we need to wait for some data processing, this function gets called later to add player rank info to the announcer output
+function addPlayerRank(){
+	// Run though rank for Top 3 players
+	for(var i=1; i<=3; i++){
+		var playerName = $(`#player${i}`).val()
 
+
+		// Lookup player in the leaderboard
+		// Pull data from MySQL database map table via SQL bridge API
+		jQuery.get(sqlApiBasePath + `/player/name/${playerName}/rank`)
+			.done(function(apiDataRes){
+				var rank = apiDataRes['Rank']
+				var copyText = ''
+
+				copyText += ` They're now ranked <b>${rank}${ordinal(rank)}</b>.`
+				// Append text right after current blurb
+				$(`#announcerCopyplayer${i}Rank`).empty();
+				$(`#announcerCopyplayer${i}Rank`).append(copyText);
+
+				// Animate the text to indicate it was updated
+				$(`#announcerCopyplayer${i}Rank`)
+					.fadeTo('slow',0.25)
+					.fadeTo('fast',1.0);
+			})
+			.fail(function(jqXHR, textStatus){
+				console.log(jqXHR);
+				console.log(textStatus);
+				//popToast('Database Read Error',`${error.error}: ${error.message}`,'red')
+			});
+	}
+	popToast('Rank Data Updated','Player rank data updated','green')
+}
+
+
+async function getPlayerRecordID(playerName){
+	// Map player name to record ID. "false" if not found
+	var playerID = false
+	
+	// Pull data from MySQL database map table via SQL bridge API
+	await jQuery.get(sqlApiBasePath + `/player/name/${playerName}`)
+		.done(function(apiDataRes){
+			playerID = apiDataRes['PlayerID']
+			
+		})
+		.fail(function(jqXHR, textStatus){
+
+			if (jqXHR.status = 404){
+				console.error(`Player ${playerName} not found in database`)
+				popToast('Not Found',`Player ${playerName} not found in database`,'red')
+			}
+			else{
+				console.error(jqXHR.responseJSON.errorFull);
+				popToast('Database Read Error', jqXHR.responseJSON.errorFull, 'red')
+			}
+			
+			console.log(jqXHR);
+			console.log(textStatus);
+
+			
+		});
+	
+	return playerID
+}
+
+
+function calcNthPlaceFinishesTonight(playerName, nthPlace) {
+	// Use the appropriate field name based on which place we're looking at (1st, 2nd, 3rd, etc)
+	var fieldName = config.airtable.raceFieldNamePlace[nthPlace]
+
+	var resultCount = 0
+
+	// /stats/current/nthPlaceFinishes/:nthPlace/:playerID
+
+	jQuery.get(sqlApiBasePath + `/player/name/${playerName}`)
+		.done(function(apiDataRes){
+			playerID = apiDataRes['PlayerID']
+			
+		})
+		.fail(function(jqXHR, textStatus){
+
+			if (jqXHR.status = 404){
+				console.error(`Player ${playerName} not found in database`)
+				popToast('Not Found',`Player ${playerName} not found in database`,'red')
+			}
+			else{
+				console.error(jqXHR.responseJSON.errorFull);
+				popToast('Database Read Error', jqXHR.responseJSON.errorFull, 'red')
+			}
+			
+			console.log(jqXHR);
+			console.log(textStatus);
+		});
+
+	// Loop over all races and check for the playerID in the results
+	Object.keys(raceList).forEach(race => {
+		// If the player ID matches the race result field, increment the counter
+		if(raceList[race][fieldName] == playerName){
+			resultCount++;
+		}
+
+	});
+
+	return resultCount;
+}
 
 
 async function saveRaceStat(statType, statValue){
