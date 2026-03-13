@@ -935,7 +935,7 @@ $('#orderedRaceResults').change(function(){
 // Websocket client to get auto-pasted race data
 var connectedToRaceDataApp = false
 function wsConnect() {
-	var ws = new WebSocket(`ws://localhost:${config.databroker.websocketPort}`);
+	var ws = new WebSocket(`ws://${config.databroker.iphostname}:${config.databroker.websocketPort}`);
 	ws.onopen = function() {
 		// Maybe show connection status message in future
 		popToast('Companion App Connected','Connected to Race data app','green')

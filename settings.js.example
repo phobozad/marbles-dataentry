@@ -68,3 +68,5 @@ config.lfg.pointsForPlace[10] = 1
 
 config.databroker={}
 config.databroker.websocketPort = 8069
+// IP address or hostname of the computer running marblescopier-listener
+config.databroker.iphostname = "127.0.0.1"
