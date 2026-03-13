@@ -121,4 +121,4 @@ wsServer.on('request', function(request) {
 
 
 // Start web server
-httpServer.listen(config.databroker.websocketPort,'127.0.0.1');
+httpServer.listen(config.databroker.websocketPort,'0.0.0.0');
