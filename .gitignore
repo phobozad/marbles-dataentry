@@ -3,3 +3,4 @@ node_modules
 autoit-v3
 *.exe
 build
+package-lock.json
