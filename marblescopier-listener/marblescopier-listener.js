@@ -51,6 +51,9 @@ cli.on('line', (input) => {
 			parsedDataBuffer = []
 			dataBuffer.forEach(line => parsedDataBuffer.push(line.split("\t")[0]))
 
+			// Skip header line
+			parsedDataBuffer.shift()
+			
 			currentResults = parsedDataBuffer.join('\n')
 
 			// Clear the buffer
