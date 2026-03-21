@@ -1,5 +1,13 @@
+# Stop the script on any error, so we don't end up with a partial build
+$ErrorActionPreference = "Stop"
+
 $packageVersion = Read-Host 'Package Version (omit "v" - just numeric)'
 $packageDir = "marbles-dataentry-$packageVersion"
+
+# Make sure there is a settings.js file for the build - otherwise it fails
+if(!(Test-Path settings.js -PathType Leaf)){
+    Copy-Item -Path settings.js.example settings.js
+}
 
 # Build
 cd marblescopier
